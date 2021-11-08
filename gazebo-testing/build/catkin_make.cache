@@ -1,0 +1,2 @@
+rosbot_description/src/rosbot_description:rosbot_description/src/rosbot_gazebo:rosbot_description/src/rosbot_navigation
+-DCATKIN_DEVEL_PREFIX=/root/catkin_ws/calciobot/gazebo-testing/devel -DCMAKE_INSTALL_PREFIX=/root/catkin_ws/calciobot/gazebo-testing/install -G Unix Makefiles
