@@ -85,7 +85,7 @@
         <pose frame=''>2 1 0 0 -0 0</pose>
         <scale>1 1 1</scale>
         <link name='link'>
-          <pose frame=''>2 1 0.5 0 -0 0</pose>
+          <pose frame=''>2 1 0 0 -0 0</pose>
           <velocity>0 0 0 0 -0 0</velocity>
           <acceleration>0 0 0 0 -0 0</acceleration>
           <wrench>0 0 0 0 -0 0</wrench>
@@ -1026,7 +1026,7 @@
       </link>
       <static>1</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>-0.063807 -3.06406 0 0 -0 0</pose>
+      <pose frame=''>0 -3.75 0 0 -0 0</pose>
     </model>
     <model name='wall_1'>
       <link name='link'>
@@ -1109,7 +1109,7 @@
       </link>
       <static>1</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>0.191579 3.57971 0 0 -0 0</pose>
+      <pose frame=''>0 3.75 0 0 -0 0</pose>
     </model>
     <model name='wall_0'>
       <link name='link'>
@@ -1192,7 +1192,7 @@
       </link>
       <static>1</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>4.62929 -7.19867 0 0 -0 0</pose>
+      <pose frame=''>3.75 0 0 0 -0 1.57</pose>
     </model>
     <model name='wall_2'>
       <link name='link'>
@@ -1275,7 +1275,7 @@
       </link>
       <static>1</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>-3.76992 -0.032473 0 0 -0 1.57</pose>
+      <pose frame=''>-3.75 0 0 0 -0 1.57</pose>
     </model>
     <model name='orange_block_1'>
       <link name='link'>
@@ -1379,7 +1379,7 @@
       </link>
       <static>1</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>-3.06522 3.24024 0 0 -0 0</pose>
+      <pose frame=''>-3 3.25 0 0 -0 0</pose>
     </model>
     <model name='orange_block_2'>
       <link name='link'>
@@ -1483,7 +1483,7 @@
       </link>
       <static>1</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>-2.172 2.61787 0 0 -0 0</pose>
+      <pose frame=''>-2.5155 3.56635 0 0 -0 1.57</pose>
     </model>
     <model name='orange_block_3'>
       <link name='link'>
@@ -1691,7 +1691,7 @@
       </link>
       <static>0</static>
       <allow_auto_disable>1</allow_auto_disable>
-      <pose frame=''>0.254365 1.79901 -9e-06 -2.2e-05 -4e-05 -6.1e-05</pose>
+      <pose frame=''>2 1 0 0 -0 0</pose>
     </model>
     <model name='obstacle_wall'>
       <link name='link'>
