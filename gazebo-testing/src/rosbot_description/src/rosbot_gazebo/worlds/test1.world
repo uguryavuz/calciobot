@@ -1306,8 +1306,8 @@
             </script>
             <ambient>1 0.6 0 1</ambient>
             <diffuse>1 0.6 0 1</diffuse>
-            <specular>0 0 0 1</specular>
-            <emissive>0 0 0 1</emissive>
+            <specular>1 0.6 0 1</specular>
+            <emissive>1 0.6 0 1</emissive>
           </material>
         </visual>
         <collision name='collision'>
@@ -1410,8 +1410,8 @@
             </script>
             <ambient>1 0.6 0 1</ambient>
             <diffuse>1 0.6 0 1</diffuse>
-            <specular>0 0 0 1</specular>
-            <emissive>0 0 0 1</emissive>
+            <specular>1 0.6 0 1</specular>
+            <emissive>1 0.6 0 1</emissive>
           </material>
         </visual>
         <collision name='collision'>
@@ -1514,8 +1514,8 @@
             </script>
             <ambient>1 0.6 0 1</ambient>
             <diffuse>1 0.6 0 1</diffuse>
-            <specular>0 0 0 1</specular>
-            <emissive>0 0 0 1</emissive>
+            <specular>1 0.6 0 1</specular>
+            <emissive>1 0.6 0 1</emissive>
           </material>
         </visual>
         <collision name='collision'>
