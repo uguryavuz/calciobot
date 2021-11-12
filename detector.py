@@ -24,6 +24,10 @@ RGB_TOPIC = 'camera/rgb/image_raw'
 DEPTH_TOPIC = 'camera/depth/image_raw'
 CAM_TOPIC = 'camera/rgb/camera_info'
 
+# Frame names
+MAP_FRAME = 'map'
+RGB_FRAME = 'camera_rgb_frame'
+
 # Loop frequency (in 1/s i.e. Hertz; for msg sending main loop.)
 FREQUENCY = 30
 
@@ -102,6 +106,9 @@ class Detector():
                 num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 8, cv2.CV_32S)
 
                 # Iterate through non-background components
+                if num_labels > 2:
+                    print('ATTENTION: Seeing multiple blobs.')
+
                 for i in range(1, num_labels):
                     # Read information about component
                     x, y, w, h, area = [stats[i, stat] for stat in [cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA]]
@@ -119,8 +126,13 @@ class Detector():
                     # Compute the x, y of the point in camera frame that corresponds to the centroid pixel, using the camera model.
                     cpt_x, cpt_y = self._camera_model.projectPixelTo3dRay((int(cX), int(cY)))[:2]
 
-                    # The object is thought to be centered at: (cpt_x, cpt_y, avg_dos) in the camera frame -- convert this to a point in a global frame, e.g. map.
-                    print("I see a {} centered at {}".format("blue cube" if masked is blue_masked else "orange goal", self._get_current_T('map', 'camera_rgb_frame').dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2]))
+                    if avg_dos > 2.5:
+                        print("I see a {} -- but I'm too far. Please get closer.".format("blue cube" if masked is blue_masked else "orange goal"))
+                    elif var_dos < self._depth_tol_variance:
+                        print("I see a {} -- but the depth information is too homogenous. Please get closer and/or change angle of sight.".format("blue cube" if masked is blue_masked else "orange goal"))
+                    else:
+                        # The object is thought to be centered at: (cpt_x, cpt_y, avg_dos) in the camera frame -- convert this to a point in a global frame, e.g. map.
+                        print("I see a {} centered at {}".format("blue cube" if masked is blue_masked else "orange goal", self._get_current_T(MAP_FRAME, RGB_FRAME).dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2]))
 
                 # Miscellaneous tests
                 # output = cv2.cvtColor(blue_masked_gray, cv2.COLOR_GRAY2RGB)
