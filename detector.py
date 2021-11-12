@@ -47,7 +47,7 @@ class Detector():
         self._rgb_sub = msf.Subscriber(RGB_TOPIC, Image)
         # self._depth_sub = rospy.Subscriber(DEPTH_TOPIC, Image, self._depth_callback, queue_size=1)
         self._depth_sub = msf.Subscriber(DEPTH_TOPIC, Image)
-        # 
+        #
         self._cam_sub = msf.Subscriber(CAM_TOPIC, CameraInfo)
         self._rgbd_sub = msf.ApproximateTimeSynchronizer([self._rgb_sub, self._depth_sub, self._cam_sub], queue_size=1, slop=0.2)
         self._rgbd_sub.registerCallback(self._rgbd_callback)
@@ -137,7 +137,7 @@ class Detector():
 
     def _rgb_callback(self, msg):
         pass
-    
+
     def _depth_callback(self, msg):
         pass
 
@@ -167,6 +167,3 @@ if __name__ == '__main__':
         detector.spin()
     except:
         rospy.logerr("ROS node interrupted.")
-
-    
-

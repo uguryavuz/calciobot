@@ -1,20 +1,17 @@
 #!/usr/bin/env python
-
-
+#The line above is important so that this file is interpreted with Python when
 #Author:Viney Regunath and Jeff Cho
 
 #import necessary packages
 
 #Python libraries
 import sys,time
-
-
 import numpy as np
-
 
 #ros libraries
 import rospy
-import roslib
+
+#import imutils
 
 #OpenCV
 import cv2
@@ -23,10 +20,10 @@ import cv2
 import tf
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose2D
-from robot_controls import ObjectPose
+from robot_controls import ObjectPose.srv
 
-
-from ObjectPose.srv import ObjPose,, ObjPoseResponse
+import ObjectPose
+from ObjectPose import ObjPose,ObjPoseResponse
 #image message of cube/ball
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CompressedImage
@@ -42,7 +39,7 @@ class BallPub:
 
         #camera parameters inspired by code bases - check if this is necessary for ours!
         self.camera_x = 0.095
-        self.camera_y = 0s
+        self.camera_y = 0
         #we are using a rospy service to get info about object's xy coordinates
         self.obj_srv = rospy.Service('/object_pose_srv', ObjectPose, self.handle_object_pose)
 
@@ -91,7 +88,8 @@ class BallPub:
         resp.x = self.obj_pose.x
         resp.y = self.obj_pose.y
 
-
+        resp.status = True
+        return resp
 
         #callback function for odom
         def callback_odom(self, odom_data):
@@ -100,7 +98,7 @@ class BallPub:
             if self.objpose_cal == False:
 
                 self.odom = True
-                #update coordinates of robot and object
+                #update coordinates of robot
                 self.odom_pose.x = odom_data.pose.pose.position.x
                 self.odom_pose.y = odom_data.pose.pose.position.y
                 quaternion = odom_data.pose.pose.orientation
@@ -119,10 +117,9 @@ def main(args):
         while not rospy.is_shutdown():
             if(ic.objpose_status):
                 objpose_pub.publish(ic.obj_pose)
-
             rate.sleep()
     except KeyboardInterrupt:
         print("Shutting down ROS feature module")
-
+    cv2.destroyAllWindows()
 if __main__ == '__main__':
     main(sys.argv)
