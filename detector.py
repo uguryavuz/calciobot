@@ -31,7 +31,7 @@ FREQUENCY = 30
 # For color ranges: https://stackoverflow.com/questions/36817133/identifying-the-range-of-a-color-in-hsv-using-opencv/51686953
 # OpenCV uses H: 0 to 179, S: 0 to 255, V: 0 to 255
 blue_mask = lambda hsv_img: cv2.inRange(hsv_img, (90, 50, 70), (128, 255, 255))
-orange_mask = lambda hsv_img: cv2.inRange(hsv_img, (10, 50, 70), (35, 255, 255))
+orange_mask = lambda hsv_img: cv2.inRange(hsv_img, (10, 50, 70), (40, 255, 255))
 
 # Image
 IMG_WIDTH, IMG_HEIGHT = 640, 480
@@ -92,25 +92,35 @@ class Detector():
             blue_masked = cv2.bitwise_and(cv_img, cv_img, mask=blue_mask(cv_hsv))
             orange_masked = cv2.bitwise_and(cv_img, cv_img, mask=orange_mask(cv_hsv))
 
-            # Get grayscale versions of masked images (i.e. V channel in HSV)
-            blue_masked_gray = cv2.split(blue_masked)[-1]
+            for masked in [blue_masked, orange_masked]:
+                # Get grayscale versions of masked images (i.e. V channel in HSV)
+                masked_gray = cv2.cvtColor(masked, cv2.COLOR_RGB2GRAY)
 
-            # Compute connected components
-            # https://stackoverflow.com/questions/35854197/how-to-use-opencvs-connected-components-with-stats-in-python
-            thresh = cv2.threshold(blue_masked_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 8, cv2.CV_32S)
+                # Compute connected components
+                # https://stackoverflow.com/questions/35854197/how-to-use-opencvs-connected-components-with-stats-in-python
+                thresh = cv2.threshold(masked_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+                num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 8, cv2.CV_32S)
 
-            for i in range(1, num_labels):
-                x, y, w, h, area = [stats[i, stat] for stat in [cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA]]
-                (cX, cY) = centroids[i]
+                # Iterate through non-background components
+                for i in range(1, num_labels):
+                    # Read information about component
+                    x, y, w, h, area = [stats[i, stat] for stat in [cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA]]
+                    cX, cY = centroids[i]
 
-                depths_of_shape = [cv_depth[cur_y][cur_x] for cur_x in range(min(x, IMG_WIDTH-1), min(x+w, IMG_WIDTH-1)+1) for cur_y in range(min(y, IMG_HEIGHT-1), min(y+h, IMG_HEIGHT-1)+1) if not np.array_equal(blue_masked_gray[cur_y][cur_x], [0, 0, 0])]
-                avg_dos = np.nanmean(depths_of_shape)
-                var_dos = np.nanvar(depths_of_shape)
+                    # Get depths from each non-background point in the rectangle surrounding component.
+                    depths_of_shape = [cv_depth[cur_y][cur_x] for cur_x in range(min(x, IMG_WIDTH-1), min(x+w, IMG_WIDTH-1)+1) for cur_y in range(min(y, IMG_HEIGHT-1), min(y+h, IMG_HEIGHT-1)+1) if not np.array_equal(masked_gray[cur_y][cur_x], [0, 0, 0])]
+                    # Compute average non-NaN depth, and variance.
+                    # TODO: 1. use variance to discard bogus avg depths.
+                    #       2. use distance to warn how reasonable guess is.
+                    avg_dos = np.nanmean(depths_of_shape)
+                    var_dos = np.nanvar(depths_of_shape)
+                    # print("cX={}, cY={}, depth={}, depth_variance={}".format(cX, cY, avg_dos, var_dos))
 
-                # print("cX={}, cY={}, depth={}, depth_variance={}".format(cX, cY, avg_dos, var_dos))
-                cpt_x, cpt_y = self._camera_model.projectPixelTo3dRay((int(cX), int(cY)))[:2]
-                print(self._get_current_T('map', 'camera_rgb_frame').dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2])
+                    # Compute the x, y of the point in camera frame that corresponds to the centroid pixel, using the camera model.
+                    cpt_x, cpt_y = self._camera_model.projectPixelTo3dRay((int(cX), int(cY)))[:2]
+
+                    # The object is thought to be centered at: (cpt_x, cpt_y, avg_dos) in the camera frame -- convert this to a point in a global frame, e.g. map.
+                    print("I see a {} centered at {}".format("blue cube" if masked is blue_masked else "orange goal", self._get_current_T('map', 'camera_rgb_frame').dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2]))
 
                 # Miscellaneous tests
                 # output = cv2.cvtColor(blue_masked_gray, cv2.COLOR_GRAY2RGB)
@@ -118,6 +128,7 @@ class Detector():
                 # cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 3)
                 # cv2.circle(output, (int(cX), int(cY)), 4, (0, 0, 255), -1)
                 # cv2.imwrite('blue.png', output)
+
         except CvBridgeError as e:
             rospy.logerr(e)
 
