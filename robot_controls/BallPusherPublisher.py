@@ -25,9 +25,13 @@ from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose2D
 from robot_controls import ObjectPose
 
+
+from ObjectPose.srv import ObjPose,, ObjPoseResponse
 #image message of cube/ball
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CompressedImage
+
+
 
 class BallPub:
 
@@ -82,6 +86,43 @@ class BallPub:
 
         print("This is outside the srv block code")
 
+
+        resp = ObjPoseResponse()
+        resp.x = self.obj_pose.x
+        resp.y = self.obj_pose.y
+
+
+
         #callback function for odom
         def callback_odom(self, odom_data):
             rospy.loginfo("callback_odom")
+            #semaphore status
+            if self.objpose_cal == False:
+
+                self.odom = True
+                #update coordinates of robot and object
+                self.odom_pose.x = odom_data.pose.pose.position.x
+                self.odom_pose.y = odom_data.pose.pose.position.y
+                quaternion = odom_data.pose.pose.orientation
+                explicit_quat = [quaternion.x,quaternion.y, quaternion.z, quaternion.w]
+                euler = tf.transformations.euler_from_quarternion(explicit_quat)
+                self.odom_pose.theta = euler[2]
+
+
+def main(args):
+    ''' Initializes and cleanup ros mode'''
+    rospy.init_node('obj_pose', log_level = rospy.DEBUG)
+    ic = ball_pose()
+    objpose_pub = rospy.Publisher('/obj_pose_pub', Pose2D, queue_size=10)
+    try:
+        rate = rospy.Rate(10) #10 hz
+        while not rospy.is_shutdown():
+            if(ic.objpose_status):
+                objpose_pub.publish(ic.obj_pose)
+
+            rate.sleep()
+    except KeyboardInterrupt:
+        print("Shutting down ROS feature module")
+
+if __main__ == '__main__':
+    main(sys.argv)
