@@ -20,10 +20,14 @@ import cv2
 import tf
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose2D
-from robot_controls import ObjectPose.srv
+#from robot_controls import ObjectPose.srv
+from calciobot import robot_controls
+from robot_controls import ObjectPose
 
-import ObjectPose
-from ObjectPose import ObjPose,ObjPoseResponse
+#import ObjectPose.srv
+
+
+#from ObjectPose import ObjPose,ObjPoseResponse
 #image message of cube/ball
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CompressedImage
@@ -121,5 +125,5 @@ def main(args):
     except KeyboardInterrupt:
         print("Shutting down ROS feature module")
     cv2.destroyAllWindows()
-if __main__ == '__main__':
+if __name__ == '__main__':
     main(sys.argv)
