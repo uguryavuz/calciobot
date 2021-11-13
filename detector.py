@@ -17,6 +17,9 @@ from image_geometry import PinholeCameraModel
 from nav_msgs.msg import OccupancyGrid
 import message_filters as msf
 
+#how to import class?
+from final_path_finder import RandomWalk
+
 # Topics
 SCAN_TOPIC = 'scan'
 GRID_TOPIC = 'map'
