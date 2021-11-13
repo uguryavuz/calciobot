@@ -8,7 +8,7 @@
 # Import of relevant libraries.
 from __future__ import division, print_function
 import numpy as np                 # Math
-import rospy, tf, cv2              # ROS API, transformations, image processign
+import rospy, tf, cv2              # ROS API, transformations, image processing
 from cv_bridge import CvBridge, CvBridgeError  # Conversion between cv2 and ROS images
 
 # Messages
