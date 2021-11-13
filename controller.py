@@ -6,13 +6,14 @@
 
 # Import of python modules.
 import math # use of pi.
-from tf import transformations
 import random
 from final_path_finder import RandomWalk, Grid
-
+#import tf
+import tf
+from tf.transformations import euler_from_quaternion
 # import of relevant libraries.
 import rospy # module for ROS APIs
-from geometry_msgs.msg import Twist # message type for cmd_vel
+from geometry_msgs.msg import Twist, Quaternion # message type for cmd_vel
 from sensor_msgs.msg import LaserScan # message type for scan
 from nav_msgs.msg import Odometry
 
@@ -136,7 +137,7 @@ class Pid():
 
         # calculating transformation matrix
         quarternion = (robot_pose.orientation.x, robot_pose.orientation.y, robot_pose.orientation.z, robot_pose.orientation.w)
-        euler = tf.transformation.euler_from_quarternion(quarternion)
+        euler = tf.transformations.euler_from_quaternion(quarternion)
         self.yaw = euler[2]
 
         # printing transformation matrix
@@ -230,7 +231,9 @@ def main():
                 if not PID._close_obstacle:
                     if path[i - 1][1] == path[i][1] or path[i - 1][0] == path[i][0]:
                         distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
+                        print("the distance", distance)
                         PID.move_forward(distance)
+                        print("we are moving forward")
 
                     else:
                         y = path[i][1] - path[i - 1][1]
@@ -238,6 +241,7 @@ def main():
                         angular_vel = math.atan2(y, x)
                         distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
                         radius = distance // 2
+                        print("changing direction")
                         PID.draw_round(radius, angular_vel)
                 #robot will attempt to move away from obstacle - obstacle avoidance
                 else:
