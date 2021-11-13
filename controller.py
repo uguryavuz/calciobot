@@ -96,7 +96,16 @@ class Pid():
              #print("jeff")
              self.move(MAX_LINEAR_VELOCITY, 0)
              rate.sleep()
+    def push_forward(self, length):
+        rate = rospy.Rate(FREQUENCY)
+        push_vel = 3
+        start_time = rospy.get_rostime()
+        duration = length/push_vel
 
+        while rospy.get_rostime() - start_time <= rospy.Duration(duration):
+             #print("jeff")
+             self.move(push_vel, 0)
+             rate.sleep()
     def draw_round(self, radius, angular_velocity):
         rate = rospy.Rate(FREQUENCY)
         start_time = rospy.get_rostime()
@@ -139,7 +148,7 @@ def main():
     rospy.init_node("CalcioBot")
 
     # Sleep for a few seconds to wait for the registration.
-    rospy.sleep(2)
+    #rospy.sleep(2)
 
     # Initialization of the class for the random walk.
     PID = Pid()
@@ -149,15 +158,17 @@ def main():
 
     # Robot random walks.
     try:
-
+        print("Hello, program starts")
         # Initialization of the class for the random walk.
         random_walk = RandomWalk()
         # Sleep for a few seconds to wait for the registration.
-        rospy.sleep(4)
+        #rospy.sleep(4)
         global dimension
         # Robot random walks.
+        print("random path")
         path=random_walk.map.path_search((80, 63),(60, 20))
-        random_walk.show_path(path)
+
+        #random_walk.show_path(path)
 
 
         #path = Grid.path_search(START, END)
@@ -215,6 +226,13 @@ def main():
                     Pid._close_obstacle = False
             else:
                 print("Goal nearby! Pushing Operation needs to be developed here!")
+                #how should we calculate distance in this situation?
+                distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
+                #half distance to allow robot to stop early; velocity is 3 instead of one
+                Pid.push_forward(distance/2)
+                print("Goal Kick")
+
+                #only thing is that we want robot to stop
 
 
     except rospy.ROSInterruptException:
@@ -223,4 +241,5 @@ def main():
 
 if __name__ == "__main__":
     """Run the main function."""
+    print("Program runs?")
     main()
