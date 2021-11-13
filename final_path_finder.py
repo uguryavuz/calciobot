@@ -52,14 +52,15 @@ class RandomWalk():
         self.marker_pub = rospy.Publisher("markers", Marker, queue_size=1)
         self.publisher = rospy.Publisher('visualization_marker_array', MarkerArray, queue_size=1)
         self.marker_array = MarkerArray()
-        
+        #self.map
+
 
     def publish_marker(self, translation, quaternion, index):
         """add marker to markers array"""
         marker_msg = Marker()
         marker_msg.header.stamp = rospy.Time.now()
         marker_msg.header.frame_id = "map"
-        
+
         marker_msg.action = Marker.ADD
         marker_msg.type = Marker.ARROW
         marker_msg.id = index # note to add multiple markers, the ID should be changed
@@ -72,13 +73,13 @@ class RandomWalk():
         marker_msg.pose.orientation.y = quaternion[1]
         marker_msg.pose.orientation.z = quaternion[2]
         marker_msg.pose.orientation.w = quaternion[3]
-        
+
         marker_msg.color.r = 1.0
         marker_msg.color.a = 1
         marker_msg.scale.x = 0.15
         marker_msg.scale.y = 0.15
         marker_msg.scale.z = 0.1
-        
+
         self.marker_array.markers.append(marker_msg)
 
 
@@ -88,11 +89,11 @@ class RandomWalk():
         global data
         dimension = msg.info.width
         data=msg.data
-        
+
 
     def show_path(self, path):
         '''get the path and publish markers'''
-        
+
         if(path):
             i=0
             for p in path[:len(path)-1]:
@@ -104,11 +105,11 @@ class RandomWalk():
             self.publisher.publish(self.marker_array)
         else:
             print("no path found")
-       
+
 
 def get_rotation(pos, next):
     '''get the rotation from current to the next grid'''
-    x=next[0]-pos[0] 
+    x=next[0]-pos[0]
     y=next[1]-pos[1]
     return math.atan2(y,x)
 
@@ -128,18 +129,18 @@ class Grid:
         # path = astar(self.data, start, end)
         G=nx.grid_graph(dim=[self.dimension,self.dimension])
         ebunch = G.edges()
-        G.remove_edges_from(ebunch) 
+        G.remove_edges_from(ebunch)
 
         edges=[]
 
         for row_index in range(self.dimension):
             for element_index in range(self.dimension):
-                
+
                 if self.data[index_to_array(row_index,element_index)] != 0: #if this gird is occupied
                     continue
 
                 for neighbors in [(0, 1), (0, -1), (-1, 0), (1, 0), (-1, -1), (1, 1), (-1,1),(1,-1)]: # Adjacent squares
-                
+
                     node_position =[row_index + neighbors[0],element_index + neighbors[1]]
 
                     # Make sure within range
@@ -149,7 +150,7 @@ class Grid:
                     # Make sure walkable terrains
                     if self.data[index_to_array(node_position[0],node_position[1])] != 0:
                         continue
-                        
+
                     edges.append(((row_index,element_index), (node_position[0],node_position[1])))
 
 
@@ -157,8 +158,8 @@ class Grid:
         path=nx.astar_path(G,start,end,heuristic=dis_to_wall)
         print(path)
         return path
-       
-      
+
+
 
 def index_to_array(i,j):
     return i * dimension+j
@@ -169,7 +170,7 @@ def dis_to_wall(a, b):
     dis_to_target=dist(a,b)
     for dis in range(1,11):
         for neighbors in [(0, 1), (0, -1), (-1, 0), (1, 0), (-1, -1), (1, 1), (-1,1),(1,-1)]: # Adjacent squares
-                    
+
                         node_position =[a[0] + dis * neighbors[0], a[1] + dis * neighbors[1]]
 
                         # Make sure within range
@@ -181,8 +182,8 @@ def dis_to_wall(a, b):
                         if data[index_to_array(node_position[0],node_position[1])] != 0:
                             dis_wall= dist(a, (a[0] + dis * neighbors[0], a[1] + dis * neighbors[1]))
                             return -dis_wall*6 + dis_to_target
-                            
-                        
+
+
 
     return dis_to_target
 
@@ -211,6 +212,8 @@ def main():
     # Robot random walks.
     try:
         path=random_walk.map.path_search((80, 63),(60, 20))
+        path=random_walk.path_search((80, 63),(60, 20))
+        print(path)
         random_walk.show_path(path)
         print("publish")
 
