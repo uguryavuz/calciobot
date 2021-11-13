@@ -15,3 +15,10 @@ CS81 Final Project, 21F.
 6. Path will be followed till goal is reached
 
 7. Robot will accelerate to get ball into goal.
+
+
+
+
+Potential Packages that may need to be downloaded:
+
+sudo apt-get install python-networkx

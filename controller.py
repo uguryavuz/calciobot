@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #The line above is important so that this file is interpreted with Python when running it.
 
-# Author: TODO: Jeffrey Cho
+# Author: TODO: Jeffrey Cho & Viney Regunath
 # Date: TODO: 10/13/21
 
 # Import of python modules.
@@ -25,8 +25,8 @@ DEFAULT_ODOM_TOPIC = 'odom'
 # Frequency at which the loop operates
 FREQUENCY = 10 #Hz.
 
-# START = 
-# END = 
+# START =
+# END =
 
 # delta time
 dt = 0.1 # seconds
@@ -63,7 +63,7 @@ class Pid():
         # Setting up the publisher to send velocity commands.
         self._cmd_pub = rospy.Publisher(DEFAULT_CMD_VEL_TOPIC, Twist, queue_size=1)
         # Setting up subscriber receiving messages from the laser.
-        self._laser_sub = rospy.Subscriber(DEFAULT_SCAN_TOPIC, LaserScan, self._laser_callback, queue_size=1)
+        #self._laser_sub = rospy.Subscriber(DEFAULT_SCAN_TOPIC, LaserScan, self._laser_callback, queue_size=1)
         self._odom = rospy.Subscriber(DEFAULT_ODOM_TOPIC, Odometry, self._odom_callback, queue_size=1)
 
         # Parameters.
@@ -72,7 +72,7 @@ class Pid():
         self.min_threshold_distance = min_threshold_distance
         self.scan_angle = scan_angle
         self.distance = distance
-        
+
         self.errors = []
 
         # Flag used to control the behavior of the robot.
@@ -108,7 +108,7 @@ class Pid():
         #duration = math.pi/angular_velocity + 0.5 * angular_velocity
 
         while rospy.get_rostime() - start_time <= rospy.Duration(duration):
-             
+
              # moving both linear and angular velocity
              self.move(velocity, -1 * angular_velocity)
              rate.sleep()
@@ -120,7 +120,7 @@ class Pid():
 
     def _odom_callback(self, msg):
 
-        # defiinig odom callback 
+        # defiinig odom callback
         robot_pose = msg.pose.pose
 
         # calculating transformation matrix
@@ -129,14 +129,14 @@ class Pid():
         self.yaw = euler[2]
 
         # printing transformation matrix
-        print(euler)
+        print("The euler", euler)
 
 
 def main():
     """Main function."""
 
     # 1st. initialization of node.
-    rospy.init_node("Controlled Path Following")
+    rospy.init_node("CalcioBot")
 
     # Sleep for a few seconds to wait for the registration.
     rospy.sleep(2)
@@ -149,12 +149,14 @@ def main():
 
     # Robot random walks.
     try:
+        START = (0,0)
+        END = (5,5)
         path = Grid.path_search(START, END)
         length = len(path)
         for i in range(1, length):
         #while not rospy.is_shutdown():
             # Keep looping until user presses Ctrl+C
-            
+
             # If the flag self._close_obstacle is False, the robot should move forward.
             # Otherwise, the robot should rotate for a random amount of time
             # after which the flag is set again to False.
@@ -162,41 +164,48 @@ def main():
 
             ####### TODO: ANSWER CODE BEGIN #######
 
-            # If the flag is False, the robot should move forward
-            if not Pid._close_obstacle:
-                if path[i - 1][1] == path[i][1] or path[i - 1][0] == path[i][0]:
-                    distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
-                    Pid.move_forward(distance)
-                
+            if i != length-1:
+
+                print("Follow path")
+                # If the flag is False, the robot should move forward
+                #robot moves if obstacle not detected
+
+                if not Pid._close_obstacle:
+                    if path[i - 1][1] == path[i][1] or path[i - 1][0] == path[i][0]:
+                        distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
+                        Pid.move_forward(distance)
+
+                    else:
+                        y = path[i][1] - path[i - 1][1]
+                        x = path[i][0] - path[i - 1][0]
+                        angular_vel = math.atan2(y, x)
+                        distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
+                        radius = distance // 2
+                        Pid.draw_round(radius, angular_vel)
+                #robot will attempt to move away from obstacle - obstacle avoidance
                 else:
-                    y = path[i][1] - path[i - 1][1]
-                    x = path[i][0] - path[i - 1][0]
-                    angular_vel = math.atan2(y, x)
-                    distance = math.sqrt((path[i - 1][1] - path[i][1])**2 + (path[i - 1][0] - path[i][0])**2)
-                    radius = distance // 2
-                    Pid.draw_round(radius, angular_vel)
-            
+
+                    # stop
+                    Pid.stop()
+
+                    x = Pid.orientation.x
+                    y = Pid.orientation.y
+
+                    if y == path[i][1] or x == path[i][0]:
+                        distance = math.sqrt((y - path[i][1])**2 + (x - path[i][0])**2)
+                        Pid.move_forward(distance)
+
+                    else:
+                        y1 = path[i][1] - y
+                        x1 = path[i][0] - x
+                        angular_vel = math.atan2(y1, x1)
+                        distance = math.sqrt((y - path[i][1])**2 + (x - path[i][0])**2)
+                        radius = distance // 2
+                        Pid.draw_round(radius, angular_vel)
+
+                    Pid._close_obstacle = False
             else:
-
-                # stop
-                Pid.stop()
-                
-                x = Pid.orientation.x
-                y = Pid.orientation.y
-
-                if y == path[i][1] or x == path[i][0]:
-                    distance = math.sqrt((y - path[i][1])**2 + (x - path[i][0])**2)
-                    Pid.move_forward(distance)
-                
-                else:
-                    y1 = path[i][1] - y
-                    x1 = path[i][0] - x
-                    angular_vel = math.atan2(y1, x1)
-                    distance = math.sqrt((y - path[i][1])**2 + (x - path[i][0])**2)
-                    radius = distance // 2
-                    Pid.draw_round(radius, angular_vel)
-
-                Pid._close_obstacle = False
+                print("Goal nearby!")
 
 
     except rospy.ROSInterruptException:
