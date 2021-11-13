@@ -213,6 +213,7 @@ def main():
     try:
         path=random_walk.map.path_search((80, 63),(60, 20))
         path=random_walk.path_search((80, 63),(60, 20))
+        print(path)
         random_walk.show_path(path)
         print("publish")
 

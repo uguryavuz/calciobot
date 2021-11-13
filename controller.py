@@ -47,12 +47,14 @@ velocity_increment = 0.5
 #MIN_SCAN_ANGLE_RAD = -10.0 / 180 * math.pi;
 #MAX_SCAN_ANGLE_RAD = +10.0 / 180 * math.pi;
 
-MIN_SCAN_ANGLE_RAD = -1 * math.pi;
-MAX_SCAN_ANGLE_RAD = + math.pi;
+MIN_SCAN_ANGLE_RAD = -1 * math.pi/4
+MAX_SCAN_ANGLE_RAD = math.pi/4
 
 KP = 1
 
 KD = 38
+
+path = [[0,0], [0,1], [1,2], [2,2], [2,3], [3,4], [4,4], [5,5], [5,6], [6,6]]
 
 class Pid():
     def __init__(self, linear_velocity=MAX_LINEAR_VELOCITY, delt_time = dt, distance = DESIRED_DISTANCE, min_threshold_distance=MIN_THRESHOLD_DISTANCE,
@@ -63,7 +65,7 @@ class Pid():
         # Setting up the publisher to send velocity commands.
         self._cmd_pub = rospy.Publisher(DEFAULT_CMD_VEL_TOPIC, Twist, queue_size=1)
         # Setting up subscriber receiving messages from the laser.
-        #self._laser_sub = rospy.Subscriber(DEFAULT_SCAN_TOPIC, LaserScan, self._laser_callback, queue_size=1)
+        self._laser_sub = rospy.Subscriber(DEFAULT_SCAN_TOPIC, LaserScan, self._laser_callback, queue_size=1)
         self._odom = rospy.Subscriber(DEFAULT_ODOM_TOPIC, Odometry, self._odom_callback, queue_size=1)
 
         # Parameters.
@@ -72,7 +74,7 @@ class Pid():
         self.min_threshold_distance = min_threshold_distance
         self.scan_angle = scan_angle
         self.distance = distance
-
+        self._close_obstacle = False
         self.errors = []
 
         # Flag used to control the behavior of the robot.
@@ -140,6 +142,34 @@ class Pid():
         # printing transformation matrix
         print("The euler", euler)
 
+    def _laser_callback(self, msg):
+        """Processing of laser message."""
+        # Access to the index of the measurement in front of the robot.
+        # NOTE: assumption: the one at angle 0 corresponds to the front.
+        
+        
+        if not self._close_obstacle:
+            # Find the minimum range value between min_scan_angle and
+            # max_scan_angle
+            # If the minimum range value is closer to min_threshold_distance, change the flag self._close_obstacle
+            # Note: You have to find the min index and max index.
+            # Please double check the LaserScan message http://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/LaserScan.html
+            ####### TODO: ANSWER CODE BEGIN #######
+
+            min_index = int((MIN_SCAN_ANGLE_RAD - msg.angle_min)/msg.angle_increment)
+            max_index = int((MAX_SCAN_ANGLE_RAD - msg.angle_min)/msg.angle_increment)
+
+            # slicing the list for our new angle ranges
+            new_list = msg.ranges[min_index:max_index+1]
+
+            # min_range_value
+            min_value = min(new_list)
+
+            if min_value < MIN_THRESHOLD_DISTANCE:
+                self._close_obstacle = True
+                
+
+           
 
 def main():
     """Main function."""
@@ -166,7 +196,12 @@ def main():
         global dimension
         # Robot random walks.
         print("random path")
-        path=random_walk.map.path_search((80, 63),(60, 20))
+        
+        #
+        #
+        #path=random_walk.map.path_search((80, 63),(60, 20))
+        #
+        #
 
         #random_walk.show_path(path)
 
