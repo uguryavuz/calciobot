@@ -6,7 +6,7 @@
 
 # Import of python modules.
 import math # use of pi.
-import tf
+from tf import transformations
 import random
 from final_path_finder import RandomWalk, Grid
 
@@ -149,9 +149,18 @@ def main():
 
     # Robot random walks.
     try:
-        START = (0,0)
-        END = (5,5)
-        path = Grid.path_search(START, END)
+
+        # Initialization of the class for the random walk.
+        random_walk = RandomWalk()
+        # Sleep for a few seconds to wait for the registration.
+        rospy.sleep(4)
+        global dimension
+        # Robot random walks.
+        path=random_walk.map.path_search((80, 63),(60, 20))
+        random_walk.show_path(path)
+
+
+        #path = Grid.path_search(START, END)
         length = len(path)
         for i in range(1, length):
         #while not rospy.is_shutdown():
@@ -205,7 +214,7 @@ def main():
 
                     Pid._close_obstacle = False
             else:
-                print("Goal nearby!")
+                print("Goal nearby! Pushing Operation needs to be developed here!")
 
 
     except rospy.ROSInterruptException:
