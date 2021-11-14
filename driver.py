@@ -13,6 +13,8 @@ from pather import GridPather
 from std_msgs.msg import String
 from v_controller import PFollow
 
+from PID_controller import PID
+
 # Driver topic
 DRIVER_TOPIC = 'calcio_driver'
 
@@ -32,6 +34,8 @@ class Driver():
         #path follower
         self._vcont = PFollow()
 
+        #jeff's pathfollower
+        #self._pid = PID()
 
         # Listen for user input
         self._driver_sub = rospy.Subscriber(DRIVER_TOPIC, String, self._update_callback, queue_size=1)

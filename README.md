@@ -31,7 +31,7 @@ sudo apt-get install python-networkx
 
 sudo apt-get install python-scipy
 
-
+sudo apt-get install python3-tk
 
 Publish Message to calcio_driver
 
