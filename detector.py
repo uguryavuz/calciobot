@@ -14,15 +14,10 @@ from cv_bridge import CvBridge, CvBridgeError  # Conversion between cv2 and ROS 
 # Messages
 from sensor_msgs.msg import LaserScan, Image, CompressedImage, CameraInfo
 from image_geometry import PinholeCameraModel
-from nav_msgs.msg import OccupancyGrid
+# from nav_msgs.msg import OccupancyGrid
 import message_filters as msf
 
-#how to import class?
-from final_path_finder import RandomWalk
-
 # Topics
-SCAN_TOPIC = 'scan'
-GRID_TOPIC = 'map'
 RGB_TOPIC = 'camera/rgb/image_raw'
 DEPTH_TOPIC = 'camera/depth/image_raw'
 CAM_TOPIC = 'camera/rgb/camera_info'
@@ -49,16 +44,11 @@ class Detector():
         self._trans_lst = tf.TransformListener()
 
         # Topic subscribers
-        self._scan_sub = rospy.Subscriber(SCAN_TOPIC, LaserScan, self._scan_callback, queue_size=1)
-        # self._rgb_sub = rospy.Subscriber(RGB_TOPIC, Image, self._rgb_callback, queue_size=1)
         self._rgb_sub = msf.Subscriber(RGB_TOPIC, Image)
-        # self._depth_sub = rospy.Subscriber(DEPTH_TOPIC, Image, self._depth_callback, queue_size=1)
         self._depth_sub = msf.Subscriber(DEPTH_TOPIC, Image)
-        #
         self._cam_sub = msf.Subscriber(CAM_TOPIC, CameraInfo)
         self._rgbd_sub = msf.ApproximateTimeSynchronizer([self._rgb_sub, self._depth_sub, self._cam_sub], queue_size=1, slop=0.2)
         self._rgbd_sub.registerCallback(self._rgbd_callback)
-        self._grid_sub = rospy.Subscriber(GRID_TOPIC, OccupancyGrid, self._grid_callback, queue_size=1)
 
         # Message transmission rate
         self._freq = freq
@@ -147,21 +137,8 @@ class Detector():
         except CvBridgeError as e:
             rospy.logerr(e)
 
-    def _scan_callback(self, msg):
-        pass
-
-    def _rgb_callback(self, msg):
-        pass
-
-    def _depth_callback(self, msg):
-        pass
-
-    def _grid_callback(self, msg):
-        pass
-
     def spin(self):
         while not rospy.is_shutdown():
-            pass
             self._rate.sleep()
 
 

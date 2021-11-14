@@ -58,13 +58,6 @@ class Grid:
     def is_free(self, xytuple):
         return 0 <= self.grid[xytuple[1], xytuple[0]] < OCCUPANCY_THOLD
 
-    # # Returns neighboring free cells in the grid.
-    # def neighbors(self, xytuple):
-    #     x, y = xytuple
-    #     # In clockwise order.
-    #     return [(x+i, y+j) for i, j in [(0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1)] 
-    #                        if self.is_free((x+i, y+j))]
-
 class GridPather():
     def __init__(self, freq=FREQUENCY):
         # Transformation listener
@@ -108,7 +101,7 @@ class GridPather():
         # Set marker instance and header.
         marker_msg = Marker()
         marker_msg.header.stamp = rospy.Time.now()
-        marker_msg.header.frame_id = 'map'
+        marker_msg.header.frame_id = MAP_FRAME
 
         # Define shape and assign unique id currently in id_counter.
         marker_msg.action = Marker.ADD
@@ -142,7 +135,6 @@ class GridPather():
     def publish_pose_markers_from_path(self, path, filter_size=3):
         coords_in_path = [self.grid.grid_to_coord(point) for point in path]
         smooth_coords = median_filter(np.array([coords_in_path[0]] * filter_size + coords_in_path + [coords_in_path[-1]] * filter_size), size=filter_size, mode='reflect')[(filter_size-1):-(filter_size-1)]
-        # print(smooth_coords)
 
         for i, cur_coord in enumerate(smooth_coords):
             # Compute previous, current and next point.
@@ -161,11 +153,11 @@ class GridPather():
     def dist_to_target(self, point, target):
         return np.linalg.norm(np.array(point) - np.array(target))
 
-    # Heuristic 2: distance to target -- but stay away from walls
-    def cautious_dist_to_target(self, point, target, window=10):
+    # Heuristic 2: distance to target -- but stay away from walls within a square of radius window. k is the weight assign to distance to wall.
+    def cautious_dist_to_target(self, point, target, window=10, k=20):
         wall_distances_in_window = [np.linalg.norm(np.array((x, y)) - np.array(point)) for x in range(max(0, point[0]-window), min(self.grid.width-1, point[0]+window)+1) for y in range(max(0, point[1]-window), min(self.grid.height-1, point[1]+window)+1) if not self.grid.is_free((x, y))]
         min_dist_to_wall = np.inf if len(wall_distances_in_window) == 0 else min(wall_distances_in_window)
-        return self.dist_to_target(point, target) * (1 + 20 / min_dist_to_wall)
+        return self.dist_to_target(point, target) * (1 + k / min_dist_to_wall)
 
     # Apply path searching using A*
     def find_path(self, start, end):
