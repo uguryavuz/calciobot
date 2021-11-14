@@ -39,7 +39,10 @@ orange_mask = lambda hsv_img: cv2.inRange(hsv_img, (10, 50, 70), (40, 255, 255))
 IMG_WIDTH, IMG_HEIGHT = 640, 480
 
 class Detector():
-    def __init__(self, freq=FREQUENCY):
+    def __init__(self, info, freq=FREQUENCY):
+        # Structure to store location and activeness information
+        self._info = info
+
         # Transformation listener
         self._trans_lst = tf.TransformListener()
 
@@ -76,6 +79,11 @@ class Detector():
         return t.dot(R)
 
     def _rgbd_callback(self, rgb_msg, depth_msg, cam_msg):
+        # Don't execute if active
+        if self._info['active'] == 2:
+            return
+        else:
+            init_status = self._info['active']
         # Update camera info
         self._camera_model.fromCameraInfo(cam_msg)
         try:
@@ -86,46 +94,62 @@ class Detector():
             cv_hsv = cv2.cvtColor(cv_img, cv2.COLOR_RGB2HSV)
 
             # Mask for blue and orange colors (based on HSV)
-            blue_masked = cv2.bitwise_and(cv_img, cv_img, mask=blue_mask(cv_hsv))
-            orange_masked = cv2.bitwise_and(cv_img, cv_img, mask=orange_mask(cv_hsv))
+            if self._info['active'] == init_status == 0:
+                masked = cv2.bitwise_and(cv_img, cv_img, mask=blue_mask(cv_hsv))
+            elif self._info['active'] == init_status == 1:
+                masked = cv2.bitwise_and(cv_img, cv_img, mask=orange_mask(cv_hsv))
+            else:
+                return
 
-            for masked in [blue_masked, orange_masked]:
-                # Get grayscale versions of masked images (i.e. V channel in HSV)
-                masked_gray = cv2.cvtColor(masked, cv2.COLOR_RGB2GRAY)
+            # Get grayscale versions of masked images (i.e. V channel in HSV)
+            masked_gray = cv2.cvtColor(masked, cv2.COLOR_RGB2GRAY)
 
-                # Compute connected components
-                # https://stackoverflow.com/questions/35854197/how-to-use-opencvs-connected-components-with-stats-in-python
-                thresh = cv2.threshold(masked_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-                num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 8, cv2.CV_32S)
+            # Compute connected components
+            # https://stackoverflow.com/questions/35854197/how-to-use-opencvs-connected-components-with-stats-in-python
+            thresh = cv2.threshold(masked_gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+            num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, 8, cv2.CV_32S)
 
-                # Iterate through non-background components
-                if num_labels > 2:
-                    print('ATTENTION: Seeing multiple blobs.')
+            # Iterate through non-background components
+            if num_labels > 2:
+                print('ATTENTION: Seeing multiple blobs.')
 
-                for i in range(1, num_labels):
-                    # Read information about component
-                    x, y, w, h, area = [stats[i, stat] for stat in [cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA]]
-                    cX, cY = centroids[i]
+            for i in range(1, num_labels):
+                # Read information about component
+                x, y, w, h, area = [stats[i, stat] for stat in [cv2.CC_STAT_LEFT, cv2.CC_STAT_TOP, cv2.CC_STAT_WIDTH, cv2.CC_STAT_HEIGHT, cv2.CC_STAT_AREA]]
+                cX, cY = centroids[i]
 
-                    # Get depths from each non-background point in the rectangle surrounding component.
-                    depths_of_shape = [cv_depth[cur_y][cur_x] for cur_x in range(min(x, IMG_WIDTH-1), min(x+w, IMG_WIDTH-1)+1) for cur_y in range(min(y, IMG_HEIGHT-1), min(y+h, IMG_HEIGHT-1)+1) if not np.array_equal(masked_gray[cur_y][cur_x], [0, 0, 0])]
-                    # Compute average non-NaN depth, and variance.
-                    # TODO: 1. use variance to discard bogus avg depths.
-                    #       2. use distance to warn how reasonable guess is.
-                    avg_dos = np.nanmean(depths_of_shape)
-                    var_dos = np.nanvar(depths_of_shape)
-                    # print("cX={}, cY={}, depth={}, depth_variance={}".format(cX, cY, avg_dos, var_dos))
+                # Get depths from each non-background point in the rectangle surrounding component.
+                depths_of_shape = [cv_depth[cur_y][cur_x] for cur_x in range(min(x, IMG_WIDTH-1), min(x+w, IMG_WIDTH-1)+1) for cur_y in range(min(y, IMG_HEIGHT-1), min(y+h, IMG_HEIGHT-1)+1) if not np.array_equal(masked_gray[cur_y][cur_x], [0, 0, 0])]
+                if depths_of_shape == []:
+                    return
+                
+                # Compute average non-NaN depth, and variance.
+                avg_dos = np.nanmean(depths_of_shape)
+                var_dos = np.nanvar(depths_of_shape)
+                # print("cX={}, cY={}, depth={}, depth_variance={}".format(cX, cY, avg_dos, var_dos))
 
-                    # Compute the x, y of the point in camera frame that corresponds to the centroid pixel, using the camera model.
-                    cpt_x, cpt_y = self._camera_model.projectPixelTo3dRay((int(cX), int(cY)))[:2]
+                # Compute the x, y of the point in camera frame that corresponds to the centroid pixel, using the camera model.
+                cpt_x, cpt_y = self._camera_model.projectPixelTo3dRay((int(cX), int(cY)))[:2]
 
-                    if avg_dos > 2.5:
-                        print("I see a {} -- but I'm too far. Please get closer.".format("blue cube" if masked is blue_masked else "orange goal"))
-                    elif var_dos < self._depth_tol_variance:
-                        print("I see a {} -- but the depth information is too homogenous. Please get closer and/or change angle of sight.".format("blue cube" if masked is blue_masked else "orange goal"))
+                if self._info['active'] != init_status:
+                    return
+
+                if avg_dos > 2.5:
+                    print("I see an {} -- but I'm too far. Please get closer.".format("blue cube" if self._info['active'] == 0 else "orange goal"))
+                elif var_dos < self._depth_tol_variance:
+                    print("I see an {} -- but the depth information is too homogenous. Please get closer and/or change angle of sight.".format("blue cube" if self._info['active'] == 0 else "orange goal"))
+                else:
+                    # The object is thought to be centered at: (cpt_x, cpt_y, avg_dos) in the camera frame -- convert this to a point in a global frame, e.g. map.
+                    if self._info['active'] == init_status == 0:
+                        loc = self._get_current_T(MAP_FRAME, RGB_FRAME).dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2]
+                        print("I see a blue cube centered at {} in map.".format(loc))
+                        self._info['start'] = loc
+                    elif self._info['active'] == init_status == 1:
+                        loc = self._get_current_T(MAP_FRAME, RGB_FRAME).dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2]
+                        print("I see an orange goal centered at {} in map.".format(loc))
+                        self._info['target'] = loc
                     else:
-                        # The object is thought to be centered at: (cpt_x, cpt_y, avg_dos) in the camera frame -- convert this to a point in a global frame, e.g. map.
-                        print("I see a {} centered at {}".format("blue cube" if masked is blue_masked else "orange goal", self._get_current_T(MAP_FRAME, RGB_FRAME).dot(np.array([cpt_x, cpt_y, avg_dos, 1]))[:2]))
+                        return
 
                 # Miscellaneous tests
                 # output = cv2.cvtColor(blue_masked_gray, cv2.COLOR_GRAY2RGB)
@@ -141,21 +165,17 @@ class Detector():
         while not rospy.is_shutdown():
             self._rate.sleep()
 
+# if __name__ == '__main__':
+#     # Initialize node
+#     rospy.init_node('detector')
+#     rospy.sleep(2)
 
-if __name__ == '__main__':
-    # Initialize node
-    rospy.init_node('detector')
-    rospy.sleep(2)
+#     # Initialize Detector instance
+#     detector = Detector()
 
-    # Initialize Detector instance
-    detector = Detector()
-
-    # If interrupted, DO STH
-    # rospy.on_shutdown()
-
-    # Spin
-    try:
-        rospy.loginfo("Detector is spinnning.")
-        detector.spin()
-    except:
-        rospy.logerr("ROS node interrupted.")
+#     # Spin
+#     try:
+#         rospy.loginfo("Detector is spinnning.")
+#         detector.spin()
+#     except:
+#         rospy.logerr("ROS node interrupted.")

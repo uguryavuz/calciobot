@@ -156,18 +156,26 @@ class GridPather():
     # Heuristic 2: distance to target -- but stay away from walls within a square of radius window. k is the weight assign to distance to wall.
     def cautious_dist_to_target(self, point, target, window=10, k=20):
         wall_distances_in_window = [np.linalg.norm(np.array((x, y)) - np.array(point)) for x in range(max(0, point[0]-window), min(self.grid.width-1, point[0]+window)+1) for y in range(max(0, point[1]-window), min(self.grid.height-1, point[1]+window)+1) if not self.grid.is_free((x, y))]
-        min_dist_to_wall = np.inf if len(wall_distances_in_window) == 0 else min(wall_distances_in_window)
+        min_dist_to_wall = np.inf if len(wall_distances_in_window) == 0 else min(1, wall_distances_in_window)
         return self.dist_to_target(point, target) * (1 + k / min_dist_to_wall)
 
     # Apply path searching using A*
-    def find_path(self, start, end):
+    def find_path(self, start, end, window=5):
         while self.grid is None: continue
         G = nx.grid_2d_graph(self.grid.height, self.grid.width)
-        G.remove_nodes_from([(x, y) for x in range(self.grid.width) for y in range(self.grid.height) if not self.grid.is_free((x, y))])
+        G.remove_nodes_from([(x, y) for x in range(self.grid.width) for y in range(self.grid.height) if (x not in range(max(0, start[0]-window), min(self.grid.width-1, start[0]+window)+1) and y not in range(max(0, start[1]-window), min(self.grid.height-1, start[1]+window)+1) and not self.grid.is_free((x, y)))])
         try:
-            return nx.astar_path(G, start, end, heuristic=self.cautious_dist_to_target)
+            path = nx.astar_path(G, start, end, heuristic=self.cautious_dist_to_target)
+            print(path)
+            return path
         except nx.NetworkXNoPath as e:
             rospy.logerr(e)
+
+    # Convert to grid cells and invoke find_path
+    def find_path_for_coords(self, start, end):
+        print("Coords: ", start, end)
+        print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
+        return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
 
 if __name__ == '__main__':
     # Initialize node
@@ -182,12 +190,14 @@ if __name__ == '__main__':
 
     # Spin
     try:
-        rospy.loginfo("Pather is spinnning.")
+        rospy.loginfo("Pather is spinning.")
         while pather.grid is None: continue
-        start = pather.grid.coord_to_grid((-2, 2))
-        target = pather.grid.coord_to_grid((2, 3))
-        print(start, target)
-        path = pather.find_path(start, target)
+        # start = pather.grid.coord_to_grid((-2, 2))
+        # target = pather.grid.coord_to_grid((2, 3))
+        # print(start, target)
+        print(pather.grid.grid_to_coord((25, 86)))
+        print(pather.grid.cell_at(70, 60), pather.grid.cell_at(25, 86))
+        path = pather.find_path((70, 60), (25, 86))
         pather.publish_pose_markers_from_path(path)
         rospy.spin()
     except:
