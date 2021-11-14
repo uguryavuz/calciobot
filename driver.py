@@ -13,7 +13,6 @@ from pather import GridPather
 from std_msgs.msg import String
 from v_controller import PFollow
 
-from PID_controller import PID
 
 # Driver topic
 DRIVER_TOPIC = 'calcio_driver'
@@ -87,6 +86,9 @@ if __name__ == '__main__':
     print('Pathing!')
     path = driver._pather.find_path_for_coords(driver._detector_info['start'], driver._detector_info['target'])
     driver._pather.publish_pose_markers_from_path(path)
+    #convert path indices to coordinates
+    path = [driver._pather.grid.grid_to_coord(point) for point in path]
+    print("Path is", path)
     print("Time to follow the path")
     driver._vcont.follow(path)
     print('Great success')

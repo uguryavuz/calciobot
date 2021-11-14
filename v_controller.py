@@ -200,10 +200,10 @@ class PFollow():
                 #robot moves if obstacle not detected
                 x= path[i][0]
                 y =path[i][1]
-                print("Current position",self.get_init_position())
+                print("Initial position",self.get_init_position())
 
                 self.gotogoal(x,y)
-                print("Coordinates desired are",x,y)
+                print("Coordinates suppsed to be reached is",x,y, "and current position is",self.get_init_position())
             else:
                 x= path[i][0]
                 y =path[i][1]
