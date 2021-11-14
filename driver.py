@@ -11,6 +11,7 @@ import rospy
 from detector import Detector
 from pather import GridPather
 from std_msgs.msg import String
+from v_controller import PFollow
 
 # Driver topic
 DRIVER_TOPIC = 'calcio_driver'
@@ -28,6 +29,10 @@ class Driver():
         self._pather_info = {'path': None}
         self._pather = GridPather()
 
+        #path follower
+        self._vcont = PFollow()
+
+
         # Listen for user input
         self._driver_sub = rospy.Subscriber(DRIVER_TOPIC, String, self._update_callback, queue_size=1)
 
@@ -37,7 +42,7 @@ class Driver():
 
     def is_detecting(self):
         return self._detector_info['active'] != 2
-    
+
     def is_pathing(self):
         return not self.is_detecting() and self._pather_info['path'] is None
 
@@ -78,7 +83,9 @@ if __name__ == '__main__':
     print('Pathing!')
     path = driver._pather.find_path_for_coords(driver._detector_info['start'], driver._detector_info['target'])
     driver._pather.publish_pose_markers_from_path(path)
+    print("Time to follow the path")
+    driver._vcont.follow(path)
     print('Great success')
     # except:
     #     rospy.logerr("ROS node interrupted.")
-
+sudo
