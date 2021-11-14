@@ -61,25 +61,14 @@ KP = 1
 
 KD = 30
 
-def calculate_distance(path):
-    distance = 0
-    for i in range(1, len(path)):
-        distance+=(math.sqrt((path[i-1][0]- path[i][0])**2 + (path[i - 1][1] - path[i][1])**2))
-    
-    return distance
+# def calculate_distance(path):
+#     distance = 0
+#     for i in range(1, len(path)):
+#         distance+=(math.sqrt((path[i-1][0]- path[i][0])**2 + (path[i - 1][1] - path[i][1])**2))
+#
+#     return distance
 
-def B_spline(path):
-    x = []
-    y = []
-    for point in path:
-        x.append(point[0])
-        y.append(point[1])
 
-    tck, rest = interpolate.splprep([x, y])
-    u = np.linspace(0, 1, num=100)
-    smooth = interpolate.splev(u, tck)
-
-    return smooth
 
 KP = 1
 
@@ -110,13 +99,30 @@ class Pid():
         self.index = 0
         self.errors = []
         self.yaw = 0
+        self.smooth = self.B_spline(path)
+        self.x_values = self.smooth[0]
+        self.y_values = self.smooth[1]
+        self.orientation = None
 
-        
+
+
 
         self._on_path = False
         # Flag used to control the behavior of the robot.
         self._close_obstacle = False # Flag variable that is true if there is a close obstacle.
-    
+    def B_spline(self,path):
+        x = []
+        y = []
+        for point in path:
+            x.append(point[0])
+            y.append(point[1])
+
+        tck, rest = interpolate.splprep([x, y])
+        u = np.linspace(0, 1, num=100)
+        smooth = interpolate.splev(u, tck)
+
+        return smooth
+
     def move(self, linear_vel, angular_vel):
         """Send a velocity command (linear vel in m/s, angular vel in rad/s)."""
         # Setting velocities.
@@ -131,7 +137,7 @@ class Pid():
 
         while rospy.get_rostime() - start_time < duration:
             self.move(0, self.angular_velocity if theta > 0 else -self.angular_velocity)
-            self.rate.sleep()
+            #rate.sleep()
 
         self.stop()
 
@@ -147,7 +153,16 @@ class Pid():
         twist_msg = Twist()
         self._cmd_pub.publish(twist_msg)
 
-    
+    def move_forward(self, length):
+        rate = rospy.Rate(FREQUENCY)
+        start_time = rospy.get_rostime()
+        duration = length/LINEAR_VELOCITY
+
+        while rospy.get_rostime() - start_time <= rospy.Duration(duration):
+             #print("jeff")
+             self.move(LINEAR_VELOCITY, 0)
+             rate.sleep()
+
 
     def _odom_callback(self, msg):
 
@@ -156,14 +171,14 @@ class Pid():
 
         # calculating transformation matrix
         quarternion = (robot_pose.orientation.x, robot_pose.orientation.y, robot_pose.orientation.z, robot_pose.orientation.w)
-        euler = tf.transformation.euler_from_quarternion(quarternion)
+        self.orientation = euler_from_quaternion(quarternion)
         euler = tf.transformations.euler_from_quaternion(quarternion)
         self.yaw = euler[2]
 
         x = robot_pose.orientation.x
         y = robot_pose.orientation.y
 
-        
+
 
 
         #total_distance = calculate_distance(path)
@@ -171,30 +186,34 @@ class Pid():
 
 
 
-        total_distance = self.calculate_distance(self.path)
-        smooth = self.B_spline(self.path, total_distance)
+        #total_distance = self.calculate_distance(self.path)
+        # smooth = self.B_spline(self.path)
+        #
+        # self.x_values = smooth[0]
+        # self.y_values = smooth[1]
 
-        x_values = smooth[0]
-        y_values = smooth[1]
+        error = math.sqrt((x - self.x_values[self.index])**2 + (y - self.y_values[self.index])**2)
+        print("The error is ", error,"and index is", self.index)
+        #self.errors.append(error)
 
-        error = math.sqrt((x - x_values[self.index])**2 + (y -y_values[self.index])**2)
+        #self.index+=1
+        #error = math.sqrt((x - self.x_values[self.index]) **2 + (y -self.y_values[self.index])**2 )
         self.errors.append(error)
 
-        self.index+=1 
-        error = math.sqrt((x - x_values[self.index]) **2 + (y -y_values[self.index])**2 )
-        self.errors.append(error)
-
+        #if self.index < 100:
         self.index+=1
 
+
+
         # printing transformation matrix
-        print("The euler", euler)
+        #print("The euler", euler)
 
     def _laser_callback(self, msg):
         """Processing of laser message."""
         # Access to the index of the measurement in front of the robot.
         # NOTE: assumption: the one at angle 0 corresponds to the front.
-        
-        
+
+
         #if not self._close_obstacle:
 
 
@@ -214,7 +233,7 @@ class Pid():
 
         # min_range_value
         min_value = min(new_list)
-            
+
         # slicing the list for our new angle ranges
         new_list = msg.ranges[min_index:max_index+1]
 
@@ -224,9 +243,9 @@ class Pid():
         #self.errors.append(self.distance - min_value)
         # if too close to obstacle
         # turn counterclockwise
-    
-        
-            
+
+
+
 
         # if min_value < MIN_THRESHOLD_DISTANCE:
         #     self._close_obstacle = True
@@ -244,14 +263,15 @@ class Pid():
     def spin(self):
         rate = rospy.Rate(FREQUENCY) # loop at 10 Hz.
 
-        smooth = B_spline(path)
-        x_values = smooth[0]
-        y_values = smooth[1]
-
-        for i in range(1, 100):
+        # smooth = self.B_spline(path)
+        # self.x_values = smooth[0]
+        i = 1
+        # self.y_values = smooth[1]
+        while len(self.errors) <= len(self.x_values):
+        #for i in range(1, 100):
         #while not rospy.is_shutdown():
             # Keep looping until user presses Ctrl+C
-            
+
         #while not rospy.is_shutdown():
             # Keep looping until user presses Ctrl+C
 
@@ -264,49 +284,53 @@ class Pid():
 
             # If the flag is False, the robot should move forward
             #if not self._close_obstacle:
-            distance = math.sqrt((self.orientation.x - x_values[i - 1])**2 + (self.orientation.y - y_values[i - 1])**2)
-            if distance != 0:
-                if len(self.errors) < 2:
-                    self.angular_velocity = KP * self.errors[-1] 
+            #distance = math.sqrt((self.orientation.x - self.x_values[i - 1])**2 + (self.orientation.y - self.y_values[i - 1])**2)
+            #
+            if len(self.errors) < 2 and self.errors is not None:
+                print(self.errors)
+                self.angular_velocity = KP * self.errors[-1]
 
-                else:
-                    self.angular_velocity = KP * self.errors[-1] + KD * ((self.errors[-1] - self.errors[-2])/self.dt)
-
-               
-                theta = math.atan2(y_values[i] - y_values[i-1], x_values[i] - x_values[i-1]) - self.yaw
-                length = math.sqrt((x_values[i] - x_values[i - 1])**2 + (y_values[i] - y_values[i - 1])**2)
-
-                self.rotate_abs(theta)
-                self.move(LINEAR_VELOCITY, 0)
             else:
-                theta = math.atan2(y_values[i] - y_values[i-1], x_values[i] - x_values[i-1]) - self.yaw
-                length = math.sqrt((x_values[i] - x_values[i - 1])**2 + (y_values[i] - y_values[i - 1])**2)
-
-                self.rotate_abs(theta)
-                self.move(LINEAR_VELOCITY, 0)
+                self.angular_velocity = KP * self.errors[-1] + KD * ((self.errors[-1] - self.errors[-2])/self.dt)
 
 
-            
+            theta = math.atan2(self.y_values[i] - self.y_values[i-1], self.x_values[i] - self.x_values[i-1]) - self.yaw
+            length = math.sqrt((self.x_values[i] - self.x_values[i - 1])**2 + (self.y_values[i] - self.y_values[i - 1])**2)
+
+            self.rotate_abs(theta)
+            self.move_forward(length)
+
+            i += 1
+
+            # else:
+            #     theta = math.atan2(self.y_values[i] - self.y_values[i-1], self.x_values[i] - self.x_values[i-1]) - self.yaw
+            #     length = math.sqrt((self.x_values[i] - self.x_values[i - 1])**2 + (self.y_values[i] - self.y_values[i - 1])**2)
+            #
+            #     self.rotate_abs(theta)
+            #     self.move(LINEAR_VELOCITY, 0)
+
+
+
             #else:
 
                 # stop
             #self.stop()
 
             # randomly pick new angular velocity between positive and negative pi/2
-            
+
             #random_angular_velocity = random.uniform(-1*math.pi, math.pi)
             # if len(self.errors) < 2:
-            #     self.angular_velocity = KP * self.errors[-1] 
+            #     self.angular_velocity = KP * self.errors[-1]
 
             # else:
             #     self.angular_velocity = KP * self.errors[-1] + KD * ((self.errors[-1] - self.errors[-2])/self.dt)
 
-            
+
             #For example, if the value of the angle is fin the interval (-pi, 0) it should rotate counterclockwise
-            #(i.e., positive angular velocity), while if angle is in the interval (0, pi) it should rotate clockwise 
+            #(i.e., positive angular velocity), while if angle is in the interval (0, pi) it should rotate clockwise
             #(i.e., negative angular velocity).
 
-            
+
             #self.move(LINEAR_VELOCITY, self.angular_velocity)
 
                 #self.move(0, random_angular_velocity)
@@ -314,7 +338,9 @@ class Pid():
             ####### ANSWER CODE END #######
 
             rate.sleep()
-        
+        self.stop()
+        print("Stopped after loop")
+
 
     def main():
         """Main function."""
@@ -371,11 +397,11 @@ class Pid():
 
         print("PID follower activated")
         self.path= path
-        total_distance = self.calculate_distance(path)
-        smooth = self.B_spline(path, total_distance)
-        x_values = smooth[0]
-        y_values = smooth[1]
-        plt.plot(x_values, y_values)
+        #total_distance = self.calculate_distance(path)
+        smooth = self.B_spline(path)
+        self.x_values = smooth[0]
+        self.y_values = smooth[1]
+        plt.plot(self.x_values, self.y_values)
         self.spin()
 
 
@@ -406,19 +432,15 @@ def main():
 if __name__ == "__main__":
     """Run the main function."""
     main()
-    total_distance = calculate_distance(path)
-    smooth = B_spline(path, total_distance)
-
-    x_values = smooth[0]
-    y_values = smooth[1]
-    plt.plot(x_values, y_values)
+    #total_distance = calculate_distance(path)
+    
 
 
 
     #total_distance = calculate_distance(path)
     #smooth = B_spline(path, total_distance)
 
-    #x_values = smooth[0]
-    #y_values = smooth[1]
-    #plt.plot(x_values, y_values)
+    #self.x_values = smooth[0]
+    #self.y_values = smooth[1]
+    #plt.plot(self.x_values, self.y_values)
     #for i in range(len(smooth)):
