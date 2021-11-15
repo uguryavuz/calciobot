@@ -43,6 +43,7 @@ class Grid:
         R = tf.transformations.quaternion_matrix([origin_rotation_q.x, origin_rotation_q.y, origin_rotation_q.z, origin_rotation_q.w])
         self.tr_matrix = t.dot(R)
 
+    # Return occupancy value at location
     def cell_at(self, x, y):
         return self.grid[y, x]
 
@@ -58,7 +59,7 @@ class Grid:
     def is_free(self, xytuple):
         return 0 <= self.grid[xytuple[1], xytuple[0]] < OCCUPANCY_THOLD
 
-class GridPather():
+class Pather():
     def __init__(self, freq=FREQUENCY):
         # Transformation listener
         self._trans_lst = tf.TransformListener()
@@ -131,16 +132,15 @@ class GridPather():
         # Add to markers array
         self._marker_array.markers.append(marker_msg)
 
-    # 
+    # Given path of grid cells, publish corresponding. MarkerArray.
     def publish_pose_markers_from_path(self, path, filter_size=3):
         coords_in_path = [self.grid.grid_to_coord(point) for point in path]
         smooth_coords = median_filter(np.array([coords_in_path[0]] * filter_size + coords_in_path + [coords_in_path[-1]] * filter_size), size=filter_size, mode='reflect')[(filter_size-1):-(filter_size-1)]
-
+        # Compute orientation for arrows.
         for i, cur_coord in enumerate(smooth_coords):
             # Compute previous, current and next point.
             prev_coord = smooth_coords[i] if i == 0 else smooth_coords[i-1]
             next_coord = smooth_coords[i] if i == len(smooth_coords)-1 else smooth_coords[i+1]
-            
             # Compute angle between the previous and next points using arctan, then append the pose to the list of poses.
             angle = np.arctan2([next_coord[1] - prev_coord[1]], [next_coord[0] - prev_coord[0]])[0]
             self._add_marker(cur_coord[0], cur_coord[1], angle)
@@ -153,53 +153,31 @@ class GridPather():
     def dist_to_target(self, point, target):
         return np.linalg.norm(np.array(point) - np.array(target))
 
-    # Heuristic 2: distance to target -- but stay away from walls within a square of radius window. k is the weight assign to distance to wall.
+    # Heuristic 2: distance to target -- but stay away from walls within a square of radius window. k is the weight assigned to the distance to wall.
     def cautious_dist_to_target(self, point, target, wall_window=10, k=20):
         wall_distances_in_window = [np.linalg.norm(np.array((x, y)) - np.array(point)) for x in range(max(0, point[0]-wall_window), min(self.grid.width-1, point[0]+wall_window)+1) for y in range(max(0, point[1]-wall_window), min(self.grid.height-1, point[1]+wall_window)+1) if not self.grid.is_free((x, y))]
         min_dist_to_wall = np.inf if len(wall_distances_in_window) == 0 else min(1, wall_distances_in_window)
         return self.dist_to_target(point, target) * (1 + k / min_dist_to_wall)
 
     # Apply path searching using A*
-    def find_path(self, start, end, start_ignore_window=0, wall_window=10, k=20):
+    def find_path(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True):
         while self.grid is None: continue
         G = nx.grid_2d_graph(self.grid.height, self.grid.width)
         G.remove_nodes_from([(x, y) for x in range(self.grid.width) for y in range(self.grid.height) if (x not in range(max(0, start[0]-start_ignore_window), min(self.grid.width-1, start[0]+start_ignore_window)+1) and y not in range(max(0, start[1]-start_ignore_window), min(self.grid.height-1, start[1]+start_ignore_window)+1) and not self.grid.is_free((x, y)))])
         try:
             h = lambda start, end: self.cautious_dist_to_target(start, end, wall_window=wall_window, k=k)
             path = nx.astar_path(G, start, end, heuristic=h)
-            print(path)
-            return path
+            print("Path in cells: ", path)
+            coord_path = [self.grid.grid_to_coord(pt) for pt in path]
+            print("Path in coords: ", coord_path)
+            if markers:
+                self.publish_pose_markers_from_path(path)
+            return coord_path
         except nx.NetworkXNoPath as e:
             rospy.logerr(e)
 
     # Convert to grid cells and invoke find_path
-    def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20):
+    def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True):
         print("Coords: ", start, end)
         print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
-        return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k)
-
-if __name__ == '__main__':
-    # Initialize node
-    rospy.init_node('pather')
-    rospy.sleep(2)
-
-    # Initialize Detector instance
-    pather = GridPather()
-
-    # If interrupted, DO STH
-    # rospy.on_shutdown()
-
-    # Spin
-    try:
-        rospy.loginfo("Pather is spinning.")
-        while pather.grid is None: continue
-        # start = pather.grid.coord_to_grid((-2, 2))
-        # target = pather.grid.coord_to_grid((2, 3))
-        # print(start, target)
-        # print(pather.grid.grid_to_coord((25, 86)))
-        # print(pather.grid.cell_at(70, 60), pather.grid.cell_at(25, 86))
-        # path = pather.find_path((70, 60), (25, 86))
-        # pather.publish_pose_markers_from_path(path)
-        # rospy.spin()
-    except:
-        rospy.logerr("ROS node interrupted.")
+        return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k, markers=markers)

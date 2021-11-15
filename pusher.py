@@ -30,7 +30,8 @@ WARN_INIT_DIST = 1
 # FSM
 class fsm(Enum):
     IDLE = 1
-    PATH_FOLLOWING = 2
+    REORIENTING = 2
+    PATH_FOLLOWING = 3
 
 # PD controller
 class PD:
@@ -84,7 +85,7 @@ class Pusher():
         self._rate = rospy.Rate(freq)
 
         # Controller
-        self._pd = PD(kp=1, kd=0.9)
+        self._pd = PD(kp=1, kd=10)
 
         # FSM
         self._fsm = fsm.IDLE
@@ -124,9 +125,10 @@ class Pusher():
     def expand_path(self, path, add_count=5):
         # Expand path's start by add_count, by adding points along approximate initial slope.
         init_delta = np.mean(np.gradient([pt[0] for pt in path])[:add_count]), np.mean(np.gradient([pt[1] for pt in path])[:add_count])
-        self.expanded_path = path[:]
+        expanded_path = path[:]
         for _ in range(add_count):
-            self.expanded_path.insert(0, (self.expanded_path[0][0] - init_delta[0], self.expanded_path[0][1] - init_delta[1]))
+            expanded_path.insert(0, (expanded_path[0][0] - init_delta[0], expanded_path[0][1] - init_delta[1]))
+        return expanded_path
 
     def _get_current_xy(self):
         return tuple(self._get_current_T(MAP_FRAME, BASE_LINK_FRAME).dot(np.array([0, 0, 0, 1]))[:2])
@@ -145,8 +147,6 @@ class Pusher():
     def _get_cur_err(self):
         closest_pt = self._get_closest_pt_in_path()
         closest_idx = self.path.index(closest_pt)
-        # print(np.array(self._get_current_xy()) - np.array(closest_pt))
-        # print(np.gradient(np.array(self.path))[0][closest_idx])
         return np.cross(np.array(self._get_current_xy()) - np.array(closest_pt), np.gradient(np.array(self.path))[0][closest_idx])[()]
     
     def spin(self):
@@ -156,7 +156,8 @@ class Pusher():
                 self._pd.reset()
                 self._fsm = fsm.IDLE
                 continue
-            self._publish_move_msg(ang_vel=self._pd.u * 40)
+            # self._publish_move_msg(ang_vel=self._pd.u * 40)
+            self._publish_move_msg(ang_vel=self._pd.u * 30)
             print(self._pd.u)
             self._pd.step(self._get_cur_err())
             # Sleep to maintain constant time interval between loop iterations.
