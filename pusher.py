@@ -27,6 +27,9 @@ FREQUENCY = 30
 # Miscellaneous
 WARN_INIT_DIST = 1
 
+# Small function to map angles between -pi and pi.
+short_angle = lambda angle: (angle - 2 * np.pi) if angle > np.pi else ((angle + 2 * np.pi) if angle < -np.pi else angle)
+
 # FSM
 class fsm(Enum):
     IDLE = 1
@@ -66,13 +69,16 @@ class PD:
         self.u = 0
 
 class Pusher():
-    def __init__(self, lin_vel=0.2, ang_vel=0, freq=FREQUENCY):
+    def __init__(self, lin_vel=0.13, ang_vel=0, freq=FREQUENCY):
         # Path to follow
         self.path = None
 
         # Velocities
         self.lin_vel = lin_vel
         self.ang_vel = ang_vel
+        
+        # Active rotation flag and message count
+        self._active_rot = [False, 0, 0]  # Activeness, message count, direction (+/-1).
 
         # Transformation listener
         self._trans_lst = tf.TransformListener()
@@ -85,7 +91,7 @@ class Pusher():
         self._rate = rospy.Rate(freq)
 
         # Controller
-        self._pd = PD(kp=1, kd=10)
+        self._pd = PD(kp=1, kd=2.5)
 
         # FSM
         self._fsm = fsm.IDLE
@@ -105,7 +111,7 @@ class Pusher():
         # Return the homogeneous 4x4 transformation matrix.
         return t.dot(R)
 
-    def _publish_move_msg(self, lin_vel=None, ang_vel=None):
+    def move_msg(self, lin_vel=None, ang_vel=None):
         """Send a velocity command (linear vel in m/s, angular vel in rad/s)."""
         # Set default arguments
         if lin_vel is None: lin_vel = self.lin_vel
@@ -117,7 +123,14 @@ class Pusher():
         twist_msg.angular.z = ang_vel
         self._cmd_pub.publish(twist_msg)
 
-    def _publish_stop_msg(self):
+    def rotate_to(self, angle, ang_vel=np.deg2rad(30)):
+        """Rotate to given angle in map frame"""
+        rel_angle = short_angle(angle - tf.transformations.rotation_from_matrix(self._get_current_T(MAP_FRAME, BASE_LINK_FRAME))[0])
+        self._active_rot[1] = int((abs(rel_angle) / ang_vel) * self._freq)
+        self._active_rot[2] = np.sign(rel_angle)
+        self._fsm = fsm.REORIENTING
+
+    def stop_msg(self):
         """Stop the robot."""
         twist_msg = Twist()
         self._cmd_pub.publish(twist_msg)
@@ -142,7 +155,9 @@ class Pusher():
             print("WARNING: You are more than {} m away from the initial point of this path.".format(WARN_INIT_DIST))
         self.path = path
         self._pd.reset()
-        self._fsm = fsm.PATH_FOLLOWING
+        cur_pt = self._get_current_xy()
+        print(np.rad2deg(np.arctan2(path[1][1] - cur_pt[1], path[1][0] - cur_pt[0])))
+        self.rotate_to(np.arctan2(path[1][1] - cur_pt[1], path[1][0] - cur_pt[0]))
 
     def _get_cur_err(self):
         closest_pt = self._get_closest_pt_in_path()
@@ -150,18 +165,34 @@ class Pusher():
         return np.cross(np.array(self._get_current_xy()) - np.array(closest_pt), np.gradient(np.array(self.path))[0][closest_idx])[()]
     
     def spin(self):
-        while self._fsm == fsm.PATH_FOLLOWING:
-            if self._get_closest_pt_in_path() == self.path[-1]:
-                self.path = None
-                self._pd.reset()
-                self._fsm = fsm.IDLE
-                continue
-            # self._publish_move_msg(ang_vel=self._pd.u * 40)
-            self._publish_move_msg(ang_vel=self._pd.u * 30)
-            print(self._pd.u)
-            self._pd.step(self._get_cur_err())
+        while self._fsm != fsm.IDLE:
+            if self._fsm == fsm.PATH_FOLLOWING:
+                if self._get_closest_pt_in_path() in self.path[-2:]:
+                    self.stop_msg()
+                    self.path = None
+                    self._pd.reset()
+                    self._fsm = fsm.IDLE
+                    continue
+                # self._publish_move_msg(ang_vel=self._pd.u * 40)
+                self.move_msg(ang_vel=self._pd.u * 30)
+                print(self._pd.u)
+                self._pd.step(self._get_cur_err())
+            elif self._fsm == fsm.REORIENTING:
+                # If not active -- set the flag to active and reset msg index.
+                if not self._active_rot[0]:
+                    i, self._active_rot[0] = 0, True
+                # If active, iterate through message count to send necessary number of messages.
+                elif i < self._active_rot[1]:
+                    self.move_msg(lin_vel=0, ang_vel=np.deg2rad(30)*self._active_rot[2])
+                    i += 1
+                # If exhausted, motion is complete -- set the flag to False and change state to idle.
+                else:
+                    self.stop_msg()
+                    self._active_rot[0] = False
+                    self._fsm = fsm.PATH_FOLLOWING
             # Sleep to maintain constant time interval between loop iterations.
             self._rate.sleep()
+
 
 if __name__ == '__main__':
     rospy.init_node('pfollower')

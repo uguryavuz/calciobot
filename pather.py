@@ -147,7 +147,7 @@ class Pather():
             
         # Publish array, then empty it and reset counter.
         self._marker_pub.publish(self._marker_array)
-        self._marker_array, self._marker_id_cnt = [], 0
+        self._marker_array, self._marker_id_cnt = MarkerArray(), 0
 
     # Heuristic 1: distance to target
     def dist_to_target(self, point, target):

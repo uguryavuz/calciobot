@@ -10,7 +10,7 @@ from __future__ import division, print_function
 import rospy                        # ROS API
 from detector import Detector       # Detector module
 from pather import Pather           # Pathfinding module
-from pusher import Pusher           # Pushing/path-following module
+from pusher import Pusher, fsm      # Pushing/path-following module
 from std_msgs.msg import String     # To process user messages to the driver topic.s
 
 # Driver topic
@@ -45,9 +45,9 @@ class Driver():
     def is_detecting(self):
         return self._detector_info['active'] != 2
 
-    # Return whether the pathfinder is actively pathing
-    def is_pathing(self):
-        return not self.is_detecting() and self._pather_info['path'] is None
+    # # Return whether the pathfinder is actively pathing
+    # def is_pathing(self):
+    #     return not self.is_detecting() and self._pather_info['path'] is None
 
     # Callback for user messages, specifically processed during detection.
     # Any message is processed as an approval by the user of suggested estimates for locations.
@@ -90,11 +90,20 @@ if __name__ == '__main__':
     path_main = driver._pather.find_path_for_coords(driver._detector_info['start'], driver._detector_info['target'], start_ignore_window=5)
     print('Navigating back to the cube to start pushing.')
     path_main_exp = driver._pusher.expand_path(path_main)
-    path_back = driver._pather.find_path_for_coords(driver._pusher._get_current_xy(), path_main_exp[0], markers=False)
-    
+    path_back = driver._pather.find_path_for_coords(driver._pusher._get_current_xy(), path_main_exp[0])
+    driver._pusher.follow_path(path_back)
+    driver._pusher.spin()
+    driver._pusher.follow_path(path_main)
+    driver._pusher.spin()
+    # rospy.sleep(1)
+    # print(driver._pusher._fsm)
+    # while driver._pusher._fsm != fsm.IDLE:
+    #     continue
+    # driver._pusher.follow_path(path_main)
+    # rospy.sleep(1)
+    # while driver._pusher._fsm != fsm.IDLE:
+    #     continue
     print('Great success')
-
-
 
     # driver._pather.publish_pose_markers_from_path([(70, 60), (69, 60), (68, 60), (67, 60), (66, 60), (65, 60), (64, 60), (63, 60), (62, 60), (61, 60), (60, 60), (59, 60), (58, 60), (57, 60), (56, 60), (55, 60), (54, 60), (53, 60), (52, 60), (51, 60), (50, 60), (49, 60), (48, 60), (47, 60), (46, 60), (46, 61), (45, 61), (45, 62), (45, 63), (44, 63), (43, 63), (43, 64), (42, 64), (42, 65), (41, 65), (41, 66), (41, 67), (40, 67), (39, 67), (38, 67), (37, 67), (36, 67), (35, 67), (34, 67), (33, 67), (32, 67), (31, 67), (30, 67), (29, 67), (28, 67), (28, 68), (28, 69), (28, 70), (28, 71), (28, 72), (28, 73), (28, 74), (28, 75), (28, 76), (28, 77), (28, 78), (28, 79), (27, 79), (27, 80)])
     # print([driver._pather.grid.grid_to_coord(pt) for pt in [(70, 60), (69, 60), (68, 60), (67, 60), (66, 60), (65, 60), (64, 60), (63, 60), (62, 60), (61, 60), (60, 60), (59, 60), (58, 60), (57, 60), (56, 60), (55, 60), (54, 60), (53, 60), (52, 60), (51, 60), (50, 60), (49, 60), (48, 60), (47, 60), (46, 60), (46, 61), (45, 61), (45, 62), (45, 63), (44, 63), (43, 63), (43, 64), (42, 64), (42, 65), (41, 65), (41, 66), (41, 67), (40, 67), (39, 67), (38, 67), (37, 67), (36, 67), (35, 67), (34, 67), (33, 67), (32, 67), (31, 67), (30, 67), (29, 67), (28, 67), (28, 68), (28, 69), (28, 70), (28, 71), (28, 72), (28, 73), (28, 74), (28, 75), (28, 76), (28, 77), (28, 78), (28, 79), (27, 79), (27, 80)]])
