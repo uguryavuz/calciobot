@@ -69,16 +69,21 @@ if __name__ == '__main__':
 
     # try:
     rospy.loginfo("Driver is spinning.")
-    print('Detecting! Send "OK" message to {} to register most recent estimate.'.format(DRIVER_TOPIC))
-    while driver.is_detecting() or not driver._pather.grid.is_free(driver._pather.grid.coord_to_grid(driver._detector_info['target'])):
-        if not driver.is_detecting():
-            print('ATTENTION: Target is not an empty cell and therefore will be emptied.')
-            driver._detector_info['target'] = None
-            driver._detector_info['active'] = 1
-    print('Pathing!')
-    path = driver._pather.find_path_for_coords(driver._detector_info['start'], driver._detector_info['target'])
-    driver._pather.publish_pose_markers_from_path(path)
-    print('Great success')
+    # print('Detecting! Send "OK" message to {} to register most recent estimate.'.format(DRIVER_TOPIC))
+    # while driver.is_detecting() or not driver._pather.grid.is_free(driver._pather.grid.coord_to_grid(driver._detector_info['target'])):
+    #     if not driver.is_detecting():
+    #         print('ATTENTION: Target is not an empty cell and therefore will be emptied.')
+    #         driver._detector_info['target'] = None
+    #         driver._detector_info['active'] = 1
+    # print('Pathing!')
+    # path = driver._pather.find_path_for_coords(driver._detector_info['start'], driver._detector_info['target'], start_ignore_window=5)
+    # driver._pather.publish_pose_markers_from_path(path)
+    # print('Great success')
+
+    # driver._pather.publish_pose_markers_from_path([(70, 60), (69, 60), (68, 60), (67, 60), (66, 60), (65, 60), (64, 60), (63, 60), (62, 60), (61, 60), (60, 60), (59, 60), (58, 60), (57, 60), (56, 60), (55, 60), (54, 60), (53, 60), (52, 60), (51, 60), (50, 60), (49, 60), (48, 60), (47, 60), (46, 60), (46, 61), (45, 61), (45, 62), (45, 63), (44, 63), (43, 63), (43, 64), (42, 64), (42, 65), (41, 65), (41, 66), (41, 67), (40, 67), (39, 67), (38, 67), (37, 67), (36, 67), (35, 67), (34, 67), (33, 67), (32, 67), (31, 67), (30, 67), (29, 67), (28, 67), (28, 68), (28, 69), (28, 70), (28, 71), (28, 72), (28, 73), (28, 74), (28, 75), (28, 76), (28, 77), (28, 78), (28, 79), (27, 79), (27, 80)])
+    print([driver._pather.grid.grid_to_coord(pt) for pt in [(70, 60), (69, 60), (68, 60), (67, 60), (66, 60), (65, 60), (64, 60), (63, 60), (62, 60), (61, 60), (60, 60), (59, 60), (58, 60), (57, 60), (56, 60), (55, 60), (54, 60), (53, 60), (52, 60), (51, 60), (50, 60), (49, 60), (48, 60), (47, 60), (46, 60), (46, 61), (45, 61), (45, 62), (45, 63), (44, 63), (43, 63), (43, 64), (42, 64), (42, 65), (41, 65), (41, 66), (41, 67), (40, 67), (39, 67), (38, 67), (37, 67), (36, 67), (35, 67), (34, 67), (33, 67), (32, 67), (31, 67), (30, 67), (29, 67), (28, 67), (28, 68), (28, 69), (28, 70), (28, 71), (28, 72), (28, 73), (28, 74), (28, 75), (28, 76), (28, 77), (28, 78), (28, 79), (27, 79), (27, 80)]])
+
+
     # except:
     #     rospy.logerr("ROS node interrupted.")
 

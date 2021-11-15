@@ -134,6 +134,7 @@ class Detector():
                 if self._info['active'] != init_status:
                     return
 
+                print("Average depth of shape is: {}".format(avg_dos))
                 if avg_dos > 2.5:
                     print("I see an {} -- but I'm too far. Please get closer.".format("blue cube" if self._info['active'] == 0 else "orange goal"))
                 elif var_dos < self._depth_tol_variance:
