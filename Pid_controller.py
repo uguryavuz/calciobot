@@ -87,15 +87,18 @@ class Pid():
         self.errors = []
 
         self.on_path = False
-        
+
 
 
         # Flag used to control the behavior of the robot.
 
     def predict_path(self, x_coordinates, coeffs):
+
+        values = []
         for x in x_coordinates:
             predicted_value = coeffs[0] * x**2 + coeffs[1] * x + coeffs[2]
-            self.predicted_values.append(predicted_value)
+            values.append(predicted_value)
+            return values
 
     def split_variables(self, path):
         x = []
@@ -103,7 +106,7 @@ class Pid():
         for coordinates in path:
             x.append(coordinates[0])
             y.append(coordinates[1])
-        
+
         ans = [x, y]
         return ans
 
@@ -129,19 +132,19 @@ class Pid():
         """Stop the robot."""
         twist_msg = Twist()
         self._cmd_pub.publish(twist_msg)
-    
+
     def move_forward(self, length):
         rate = rospy.Rate(FREQUENCY)
         start_time = rospy.get_rostime()
         duration = length/LINEAR_VELOCITY
-        
+
         while rospy.get_rostime() - start_time <= rospy.Duration(duration):
              self.move(LINEAR_VELOCITY, 0)
              rate.sleep()
 
     def _odom_callback(self, msg):
 
-        # defiinig odom callback 
+        # defiinig odom callback
         robot_pose = msg.pose.pose
 
         # calculating transformation matrix
@@ -151,7 +154,7 @@ class Pid():
         x = robot_pose.orientation.x
         y = robot_pose.orientation.y
 
-        predicted_y = self.coeffs[0] * x**2 + self.coeffs[1] * x + self.coeffs[2] 
+        predicted_y = self.coeffs[0] * x**2 + self.coeffs[1] * x + self.coeffs[2]
 
         error = predicted_y - y
 
@@ -163,7 +166,7 @@ class Pid():
         self.errors.append(error)
 
         self.yaw = euler[2]
-    
+
     def rotate_rel(self, theta):
         start_time = rospy.get_rostime()
         duration = rospy.Duration(abs(theta) / self.angular_velocity)
@@ -182,8 +185,8 @@ class Pid():
         """Processing of laser message."""
         # Access to the index of the measurement in front of the robot.
         # NOTE: assumption: the one at angle 0 corresponds to the front.
-        
-        
+
+
         #if not self._close_obstacle:
             # Find the minimum range value between min_scan_angle and
             # max_scan_angle
@@ -198,20 +201,20 @@ class Pid():
             # slicing the list for our new angle ranges
         new_list = msg.ranges[min_index:max_index+1]
 
-       
- 
-           
+
+
+
     def spin(self):
         rate = rospy.Rate(FREQUENCY) # loop at 10 Hz.
         #while not rospy.is_shutdown():
             # Keep looping until user presses Ctrl+C
         length = len(self.predicted_values)
         for i in range(1, length):
-       
+
             ####### TODO: ANSWER CODE BEGIN #######
             theta = math.atan2(self.x_values[i - 1] - self.x_values[i], self.predicted_values[i] - self.predicted_values[i - 1]) - self.yaw
             length = math.sqrt((self.x_values[i] - self.x_values[i - 1])**2 + (self.predicted_values[i] - self.predicted_values[i - 1])**2)
-            #length = 
+            #length =
             # If the flag is False, the robot should move forward
             if self.on_path:
                 if theta > 0:
@@ -220,39 +223,39 @@ class Pid():
                     self.rotate_abs(theta)
 
                 self.move_forward(length)
-            
+
             else:
 
                 # stop
                 self.stop()
 
                 # randomly pick new angular velocity between positive and negative pi/2
-                
+
                 #random_angular_velocity = random.uniform(-1*math.pi, math.pi)
                 if len(self.errors) < 2:
-                    self.angular_velocity = KP * self.errors[-1] 
+                    self.angular_velocity = KP * self.errors[-1]
 
                 else:
                     self.angular_velocity = KP * self.errors[-1] + KD * ((self.errors[-1] - self.errors[-2])/self.dt)
 
-                
+
                 #For example, if the value of the angle is fin the interval (-pi, 0) it should rotate counterclockwise
-                #(i.e., positive angular velocity), while if angle is in the interval (0, pi) it should rotate clockwise 
+                #(i.e., positive angular velocity), while if angle is in the interval (0, pi) it should rotate clockwise
                 #(i.e., negative angular velocity).
 
-               
+
                 self.move(LINEAR_VELOCITY, self.angular_velocity)
 
                 #self.move(0, random_angular_velocity)
             ####### ANSWER CODE END #######
 
             rate.sleep()
-        
+
 
 def main():
     """Main function."""
 
-    
+
 
     # 1st. initialization of node.
     rospy.init_node("Follow_Wall")
@@ -269,6 +272,7 @@ def main():
     # Robot random walks.
     try:
         PID.spin()
+        print("It should be done")
     except rospy.ROSInterruptException:
         rospy.logerr("ROS node interrupted.")
 
