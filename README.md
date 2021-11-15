@@ -22,20 +22,20 @@ CS81 Final Project, 21F.
 #Running Code:
 
 
-python -b <file_name>
+* python -b <file_name>
 
 
 #Potential Packages that may need to be downloaded:
 
-sudo apt-get install python-networkx
+* sudo apt-get install python-networkx
 
-sudo apt-get install python-scipy
+* sudo apt-get install python-scipy
 
-sudo apt-get install python-tk
+* sudo apt-get install python-tk
 
 #Publish Message to calcio_driver
 
-rostopic pub calcio_driver std_msgs/String "OK" -1
+* rostopic pub calcio_driver std_msgs/String "OK" -1
 
 
 
