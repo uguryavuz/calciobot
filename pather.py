@@ -21,6 +21,7 @@ SCAN_TOPIC = 'scan'
 MAP_TOPIC = 'map'
 ODOM_TOPIC = 'odom'
 MARKER_TOPIC = 'visualization_marker_array'
+MARKER_TOPIC_COPY = 'visualization_marker_array_copy'
 
 # Frame names
 MAP_FRAME = 'map'
@@ -67,9 +68,11 @@ class Pather():
         # Topic subscribers/publishers
         self._map_sub = rospy.Subscriber(MAP_TOPIC, OccupancyGrid, self._map_callback, queue_size=1)
         self._marker_pub = rospy.Publisher(MARKER_TOPIC, MarkerArray, queue_size=1)
+        self._marker_pub_copy = rospy.Publisher(MARKER_TOPIC_COPY, MarkerArray, queue_size=1)
         
         # Marker array to be published, and ID counter for individual markers.
         self._marker_array = MarkerArray()
+        self._marker_array_sec = MarkerArray()
         self._marker_id_cnt = 0
 
         # Variable containing occupancy grid.
@@ -131,9 +134,11 @@ class Pather():
 
         # Add to markers array
         self._marker_array.markers.append(marker_msg)
+ 
+            
 
     # Given path of grid cells, publish corresponding. MarkerArray.
-    def publish_pose_markers_from_path(self, path, filter_size=3):
+    def publish_pose_markers_from_path(self, path, filter_size=3, type=0):
         coords_in_path = [self.grid.grid_to_coord(point) for point in path]
         smooth_coords = median_filter(np.array([coords_in_path[0]] * filter_size + coords_in_path + [coords_in_path[-1]] * filter_size), size=filter_size, mode='reflect')[(filter_size-1):-(filter_size-1)]
         # Compute orientation for arrows.
@@ -146,8 +151,15 @@ class Pather():
             self._add_marker(cur_coord[0], cur_coord[1], angle)
             
         # Publish array, then empty it and reset counter.
-        self._marker_pub.publish(self._marker_array)
-        self._marker_array, self._marker_id_cnt = MarkerArray(), 0
+        if(type==0):    #type 0 for the first path
+            self._marker_pub.publish(self._marker_array)
+            self._marker_array, self._marker_id_cnt = MarkerArray(), 0
+        else:       #type 1 for the second path
+            self._marker_pub_copy.publish(self._marker_array)
+            self._marker_array, self._marker_id_cnt = MarkerArray(), 0
+       
+   
+            
 
     # Heuristic 1: distance to target
     def dist_to_target(self, point, target):
@@ -160,7 +172,7 @@ class Pather():
         return self.dist_to_target(point, target) * (1 + k / min_dist_to_wall)
 
     # Apply path searching using A*
-    def find_path(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True):
+    def find_path(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True, type=0):
         while self.grid is None: continue
         G = nx.grid_2d_graph(self.grid.height, self.grid.width)
         G.remove_nodes_from([(x, y) for x in range(self.grid.width) for y in range(self.grid.height) if (x not in range(max(0, start[0]-start_ignore_window), min(self.grid.width-1, start[0]+start_ignore_window)+1) and y not in range(max(0, start[1]-start_ignore_window), min(self.grid.height-1, start[1]+start_ignore_window)+1) and not self.grid.is_free((x, y)))])
@@ -171,13 +183,13 @@ class Pather():
             coord_path = [self.grid.grid_to_coord(pt) for pt in path]
             print("Path in coords: ", coord_path)
             if markers:
-                self.publish_pose_markers_from_path(path)
+                self.publish_pose_markers_from_path(path, type=type)
             return coord_path
         except nx.NetworkXNoPath as e:
             rospy.logerr(e)
 
     # Convert to grid cells and invoke find_path
-    def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True):
+    def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True, type=0):
         print("Coords: ", start, end)
         print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
-        return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k, markers=markers)
+        return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k, markers=markers, type=type)
