@@ -22,7 +22,7 @@ CS81 Final Project, 21F.
 #Running Code:
 
 
-* python -b <file_name>
+* python -B <file_name>
 
 
 #Potential Packages that may need to be downloaded:
