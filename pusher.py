@@ -69,7 +69,7 @@ class PD:
         self.u = 0
 
 class Pusher():
-    def __init__(self, lin_vel=0.13, ang_vel=0, freq=FREQUENCY):
+    def __init__(self, lin_vel=0.06, ang_vel=0, freq=FREQUENCY):
         # Path to follow
         self.path = None
 
@@ -91,7 +91,7 @@ class Pusher():
         self._rate = rospy.Rate(freq)
 
         # Controller
-        self._pd = PD(kp=1, kd=2.5)
+        self._pd = PD(kp=1, kd=4)
 
         # FSM
         self._fsm = fsm.IDLE
@@ -174,8 +174,8 @@ class Pusher():
                     self._fsm = fsm.IDLE
                     continue
                 # self._publish_move_msg(ang_vel=self._pd.u * 40)
-                self.move_msg(ang_vel=self._pd.u * 30)
-                print(self._pd.u)
+                self.move_msg(ang_vel=self._pd.u * 15)
+                # print(self._pd.u)
                 self._pd.step(self._get_cur_err())
             elif self._fsm == fsm.REORIENTING:
                 # If not active -- set the flag to active and reset msg index.

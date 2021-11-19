@@ -1602,7 +1602,7 @@
           <geometry>
             <mesh>
               <uri>model://cube_20k/meshes/cube_20k.stl</uri>
-              <scale>0.07 0.07 0.07</scale>
+              <scale>0.05 0.05 0.05</scale>
             </mesh>
           </geometry>
           <pose frame=''>0 0 0 0 -0 0</pose>
@@ -1629,7 +1629,7 @@
           <geometry>
             <mesh>
               <uri>/root/.gazebo/models/cube_20k/meshes/cube_20k.stl</uri>
-              <scale>0.07 0.07 0.07</scale>
+              <scale>0.05 0.05 0.05</scale>
             </mesh>
           </geometry>
           <surface>
