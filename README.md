@@ -5,10 +5,10 @@ Written by Ugur Yavuz, Qiyao Zuo, Jeff Cho and Viney Regunath.
 
 # How to launch
 * Packages to be installed: ``python-networkx`` and ``python-scipy``. 
-* Change directory to ``gazebo-testing``.
-* Run ``roslaunch rosbot_description rosbot_rviz_gmapping.launch``.
-* Run ``roslaunch rosbot_navigation rosbot_teleop.launch``.
-* Switch to the main directory.
+* Change directory to ``gazebo-testing``. 
+* Run ``source ./devel/setup.sh`` then ``roslaunch rosbot_description rosbot_rviz_gmapping.launch``.
+* In another terminal, run ``roslaunch rosbot_navigation rosbot_teleop.launch`` (also after sourcing).
+* In another terminal, switch to the main directory.
 * Run ``python -B driver.py``. (The ``-B`` flag prevents the imported scripts from being compiled into .pyc files.)
 * Open another terminal, where you will later publish String messages to the ``calcio_driver`` topic (e.g. ``rostopic pub calcio_driver std_msgs/String "OK" -1``).
 
