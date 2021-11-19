@@ -101,7 +101,7 @@ class Pather():
         self.grid = Grid(msg.data, msg.info.width, msg.info.height, msg.info.resolution, msg.info.origin.position, msg.info.origin.orientation)
 
     # Add new marker to marker array class variable
-    def _add_marker(self, x, y, theta):
+    def _add_marker(self, x, y, theta, r=1, g=0, b=0):
         # Set marker instance and header.
         marker_msg = Marker()
         marker_msg.header.stamp = rospy.Time.now()
@@ -124,7 +124,9 @@ class Pather():
         marker_msg.pose.orientation.w = q[3]
 
         # Specify color and transparency.
-        marker_msg.color.r = 1
+        marker_msg.color.r = r
+        marker_msg.color.g = g
+        marker_msg.color.b = b
         marker_msg.color.a = 1
 
         # Specify scale
@@ -141,6 +143,8 @@ class Pather():
     def publish_pose_markers_from_path(self, path, filter_size=3, type=0):
         coords_in_path = [self.grid.grid_to_coord(point) for point in path]
         smooth_coords = median_filter(np.array([coords_in_path[0]] * filter_size + coords_in_path + [coords_in_path[-1]] * filter_size), size=filter_size, mode='reflect')[(filter_size-1):-(filter_size-1)]
+        r, g, b = np.random.rand(3)
+
         # Compute orientation for arrows.
         for i, cur_coord in enumerate(smooth_coords):
             # Compute previous, current and next point.
@@ -148,7 +152,7 @@ class Pather():
             next_coord = smooth_coords[i] if i == len(smooth_coords)-1 else smooth_coords[i+1]
             # Compute angle between the previous and next points using arctan, then append the pose to the list of poses.
             angle = np.arctan2([next_coord[1] - prev_coord[1]], [next_coord[0] - prev_coord[0]])[0]
-            self._add_marker(cur_coord[0], cur_coord[1], angle)
+            self._add_marker(cur_coord[0], cur_coord[1], angle, r=r, g=g, b=b)
             
         # Publish array, then empty it and reset counter.
         if(type==0):    #type 0 for the first path

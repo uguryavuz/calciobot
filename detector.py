@@ -134,7 +134,7 @@ class Detector():
                 print("Average depth of shape is: {}".format(avg_dos))
                 if avg_dos > 2.5:
                     print("I see an {} -- but I'm too far. Please get closer.".format("blue cube" if self._info['active'] == 0 else "orange goal"))
-                elif var_dos < self._depth_tol_variance:
+                # elif var_dos < self._depth_tol_variance:
                     print("I see an {} -- but the depth information is too homogenous. Please get closer and/or change angle of sight.".format("blue cube" if self._info['active'] == 0 else "orange goal"))
                 else:
                     # The object is thought to be centered at: (cpt_x, cpt_y, avg_dos) in the camera frame -- convert this to a point in a global frame, e.g. map.

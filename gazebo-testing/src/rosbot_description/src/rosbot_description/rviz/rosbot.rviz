@@ -256,7 +256,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /visualization_marker_array
+      Marker Topic: /visualization_marker_array_copy
       Name: MarkerArray
       Namespaces:
         {}
