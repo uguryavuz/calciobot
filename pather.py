@@ -183,9 +183,9 @@ class Pather():
         try:
             h = lambda start, end: self.cautious_dist_to_target(start, end, wall_window=wall_window, k=k)
             path = nx.astar_path(G, start, end, heuristic=h)
-            print("Path in cells: ", path)
+            # print("Path in cells: ", path)
             coord_path = [self.grid.grid_to_coord(pt) for pt in path]
-            print("Path in coords: ", coord_path)
+            # print("Path in coords: ", coord_path)
             if markers:
                 self.publish_pose_markers_from_path(path, type=type)
             return coord_path
@@ -195,5 +195,5 @@ class Pather():
     # Convert to grid cells and invoke find_path
     def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True, type=0):
         print("Coords: ", start, end)
-        print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
+        # print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
         return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k, markers=markers, type=type)
