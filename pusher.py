@@ -144,38 +144,46 @@ class Pusher():
         return expanded_path
 
     def _get_current_xy(self):
+        # Return current x, y location using base_link to map transformation information.
         return tuple(self._get_current_T(MAP_FRAME, BASE_LINK_FRAME).dot(np.array([0, 0, 0, 1]))[:2])
     
     def _get_closest_pt_in_path(self):
+        # Find closest point along registered path to the current location of the robot.
         cur_pt = self._get_current_xy()
         return sorted(self.path, key=lambda pt: np.linalg.norm(np.array(pt) - np.array(cur_pt)))[0]
 
     def follow_path(self, path):
+        # Warn if assumption that the start of the path is close to the robot's current location does not hold.
         if np.linalg.norm(np.array(self._get_current_xy()) - np.array(path[0])) > WARN_INIT_DIST:
             print("WARNING: You are more than {} m away from the initial point of this path.".format(WARN_INIT_DIST))
+        # Set path and reset PD.
         self.path = path
         self._pd.reset()
+        # Align robot with path.
         cur_pt = self._get_current_xy()
-        
         self.rotate_to(np.arctan2(path[1][1] - cur_pt[1], path[1][0] - cur_pt[0]))
 
     def _get_cur_err(self):
+        # Compute error: cross product of distance vector to closest point on path, and local gradient along the path at that point.
         closest_pt = self._get_closest_pt_in_path()
         closest_idx = self.path.index(closest_pt)
         return np.cross(np.array(self._get_current_xy()) - np.array(closest_pt), np.gradient(np.array(self.path))[0][closest_idx])[()]
     
     def spin(self):
+        # Stop if set to be idle -- invoker will call spin when this status is changed.
         while self._fsm != fsm.IDLE:
+            # Do path following
             if self._fsm == fsm.PATH_FOLLOWING:
+                # Stopping takes a while, so stop a little prematurely if near end.
                 if self._get_closest_pt_in_path() in self.path[-2:]:
                     self.stop_msg()
                     self.path = None
                     self._pd.reset()
                     self._fsm = fsm.IDLE
                     continue
-                
+                # Otherwise, adjust rotation with control information from the PD controller
                 self.move_msg(ang_vel=self._pd.u * 15)
-                
+                # Update controller
                 self._pd.step(self._get_cur_err())
             elif self._fsm == fsm.REORIENTING:
                 # If not active -- set the flag to active and reset msg index.
