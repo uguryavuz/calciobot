@@ -156,7 +156,7 @@ class Pusher():
         self.path = path
         self._pd.reset()
         cur_pt = self._get_current_xy()
-        # print(np.rad2deg(np.arctan2(path[1][1] - cur_pt[1], path[1][0] - cur_pt[0])))
+        
         self.rotate_to(np.arctan2(path[1][1] - cur_pt[1], path[1][0] - cur_pt[0]))
 
     def _get_cur_err(self):
@@ -175,7 +175,7 @@ class Pusher():
                     continue
                 
                 self.move_msg(ang_vel=self._pd.u * 15)
-                # print(self._pd.u)
+                
                 self._pd.step(self._get_cur_err())
             elif self._fsm == fsm.REORIENTING:
                 # If not active -- set the flag to active and reset msg index.
