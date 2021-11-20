@@ -194,6 +194,6 @@ class Pather():
 
     # Convert to grid cells and invoke find_path
     def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True, type=0):
-        print("Coords: ", start, end)
+        # print("Coords: ", start, end)
         # print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
         return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k, markers=markers, type=type)
