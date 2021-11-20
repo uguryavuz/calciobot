@@ -26,5 +26,5 @@ Here are some of the driver in action:
 <img width="480" alt="img1" src="https://github.com/uguryavuz/calciobot/raw/070150408c832bf535db384a57dc44032d5a3690/media/img1.png">
 <img width="480" alt="img2" src="https://github.com/uguryavuz/calciobot/raw/070150408c832bf535db384a57dc44032d5a3690/media/img2.png">
 <img width="480" alt="img3" src="https://github.com/uguryavuz/calciobot/raw/070150408c832bf535db384a57dc44032d5a3690/media/img4.png">
-<img width="480" alt="image5.png" src="https://github.com/uguryavuz/calciobot/raw/070150408c832bf535db384a57dc44032d5a3690/media/image5.png">
+<img width="480" alt="image5" src="media/image5.png">
 <img width="480" alt="img4" src="https://github.com/uguryavuz/calciobot/raw/070150408c832bf535db384a57dc44032d5a3690/media/img3.png">
