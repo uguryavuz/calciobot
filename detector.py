@@ -29,7 +29,7 @@ RGB_FRAME = 'camera_rgb_frame'
 # Loop frequency (in 1/s i.e. Hertz; for msg sending main loop.)
 FREQUENCY = 30
 
-# OpenCV things?
+# OpenCV
 # For color ranges: https://stackoverflow.com/questions/36817133/identifying-the-range-of-a-color-in-hsv-using-opencv/51686953
 # OpenCV uses H: 0 to 179, S: 0 to 255, V: 0 to 255
 blue_mask = lambda hsv_img: cv2.inRange(hsv_img, (90, 50, 70), (128, 255, 255))
