@@ -52,17 +52,21 @@ class Driver():
         if active_stat == self._detector_info['active'] == 0:
             if self._detector_info['start'] is not None:
                 self._detector_info['active'] = 1 if self._detector_info['active'] == 0 else self._detector_info['active']
+                # Check if target object location has been detected, if so print message and wait a little. 
                 if self._detector_info['active'] == 1:
                     print('Start (i.e. blue cube location) set to {}.'.format(self._detector_info['start']))
                     rospy.sleep(1)
+            # No point has been selected, so nothing to update.
             else:
                 print('No start detected -- no updates.')
         elif active_stat == self._detector_info['active'] == 1:
             if self._detector_info['target'] is not None:
                 self._detector_info['active'] = 2 if self._detector_info['active'] == 1 else self._detector_info['active']
+                # Check if goal location has been detected, if so print message and wait a little. 
                 if self._detector_info['active'] == 2:
                     print('Target (i.e. yellow goal location) set to {}.'.format(self._detector_info['target']))
                     rospy.sleep(1)
+            # No point has been selected, so nothing to update.
             else:
                 print('No target detected -- no updates.')
 
@@ -71,32 +75,43 @@ if __name__ == '__main__':
     rospy.init_node('driver')
     rospy.sleep(2)
     driver = Driver()
-
     
     try:
+        # Wait until grid is loaded.
         while driver._pather.grid is None: continue
-
+        
+        # Start spinning.
         rospy.loginfo("Driver is spinning.")
+        
+        # Detection section.
         print('Detecting! Send "OK" message to {} to register most recent estimate.'.format(DRIVER_TOPIC))
         while driver.is_detecting() or not driver._pather.grid.is_free(driver._pather.grid.coord_to_grid(driver._detector_info['target'])):
             if not driver.is_detecting():
                 print('ATTENTION: Target is not an empty cell and therefore will be emptied.')
                 driver._detector_info['target'] = None
                 driver._detector_info['active'] = 1
+                
+        # Pathfinding section.
         print('Pathing!')
-
         path_main = driver._pather.find_path_for_coords(driver._detector_info['start'], driver._detector_info['target'], start_ignore_window=5)
+        
+        # Wait for every variable to be set.
         print('Navigating back to the cube to start pushing.')
-
         rospy.sleep(2)
 
+        # Path finding section 2.
         path_main_exp = driver._pusher.expand_path(path_main)
         path_back = driver._pather.find_path_for_coords(driver._pusher._get_current_xy(), path_main_exp[0], type=1)
 
+        # Path following section 1.
         driver._pusher.follow_path(path_back)
         driver._pusher.spin()
+        
+        # Path following section 2, i.e. pushing.
         driver._pusher.follow_path(path_main)
         driver._pusher.spin()
+        
+        # Hopefully -- success!
         print('Great success')
 
     except rospy.ROSInterruptException:
