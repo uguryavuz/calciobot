@@ -148,13 +148,6 @@ class Detector():
                         self._info['target'] = loc
                     else: return
 
-                # Miscellaneous tests
-                # output = cv2.cvtColor(blue_masked_gray, cv2.COLOR_GRAY2RGB)
-                # print('Black ratio: {}'.format(sum([np.array_equal(output[cur_y][cur_x], [0, 0, 0]) for cur_x in range(min(x, IMG_WIDTH-1), min(x+w, IMG_WIDTH-1)+1) for cur_y in range(y, min(y+h, IMG_HEIGHT-1)+1)]) / (w*h)))
-                # cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 3)
-                # cv2.circle(output, (int(cX), int(cY)), 4, (0, 0, 255), -1)
-                # cv2.imwrite('blue.png', output)
-
         except CvBridgeError as e:
             rospy.logerr(e)
 
