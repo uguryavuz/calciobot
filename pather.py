@@ -137,9 +137,7 @@ class Pather():
         # Add to markers array
         self._marker_array.markers.append(marker_msg)
  
-            
-
-    # Given path of grid cells, publish corresponding. MarkerArray.
+    # Given path of grid cells, publish corresponding MarkerArray.
     def publish_pose_markers_from_path(self, path, filter_size=3, type=0):
         coords_in_path = [self.grid.grid_to_coord(point) for point in path]
         smooth_coords = median_filter(np.array([coords_in_path[0]] * filter_size + coords_in_path + [coords_in_path[-1]] * filter_size), size=filter_size, mode='reflect')[(filter_size-1):-(filter_size-1)]
@@ -161,9 +159,6 @@ class Pather():
         else:       #type 1 for the second path
             self._marker_pub_copy.publish(self._marker_array)
             self._marker_array, self._marker_id_cnt = MarkerArray(), 0
-       
-   
-            
 
     # Heuristic 1: distance to target
     def dist_to_target(self, point, target):
@@ -177,15 +172,17 @@ class Pather():
 
     # Apply path searching using A*
     def find_path(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True, type=0):
+        # Wait for grid to load.
         while self.grid is None: continue
+        # Create NetworkX graph from grid -- remove all non-free cells as nodes.
         G = nx.grid_2d_graph(self.grid.height, self.grid.width)
         G.remove_nodes_from([(x, y) for x in range(self.grid.width) for y in range(self.grid.height) if (x not in range(max(0, start[0]-start_ignore_window), min(self.grid.width-1, start[0]+start_ignore_window)+1) and y not in range(max(0, start[1]-start_ignore_window), min(self.grid.height-1, start[1]+start_ignore_window)+1) and not self.grid.is_free((x, y)))])
         try:
+            # Set heuristic
             h = lambda start, end: self.cautious_dist_to_target(start, end, wall_window=wall_window, k=k)
+            # Invoke A* and publish markers.
             path = nx.astar_path(G, start, end, heuristic=h)
-            # print("Path in cells: ", path)
             coord_path = [self.grid.grid_to_coord(pt) for pt in path]
-            # print("Path in coords: ", coord_path)
             if markers:
                 self.publish_pose_markers_from_path(path, type=type)
             return coord_path
@@ -194,6 +191,5 @@ class Pather():
 
     # Convert to grid cells and invoke find_path
     def find_path_for_coords(self, start, end, start_ignore_window=0, wall_window=10, k=20, markers=True, type=0):
-        # print("Coords: ", start, end)
-        # print("Grid cells: ", self.grid.coord_to_grid(start), self.grid.coord_to_grid(end))
+        # Invoke find_path with corresponding arguments
         return self.find_path(self.grid.coord_to_grid(start), self.grid.coord_to_grid(end), start_ignore_window=start_ignore_window, wall_window=wall_window, k=k, markers=markers, type=type)
